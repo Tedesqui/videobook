@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Gere Vídeo pelo Texto Capturado - Hunyuan</title>
+    <title>Gere Vídeo com Hugging Face</title>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.1/dist/tesseract.min.js"></script>
     <style>
         :root {
-            --primary-color: #0d6efd;
-            --primary-hover: #0056b3;
+            --primary-color: #ffc222; /* Cor da Hugging Face */
+            --primary-hover: #e6b31f;
             --dark-bg: #121212;
             --card-bg: #1e1e1e;
             --text-color: #e0e0e0;
@@ -43,40 +43,21 @@
         #snapshot { display: none; }
 
         .controls-container {
-            display: flex; /* Alterado para linha */
-            flex-direction: row;
-            align-items: center;
-            gap: 10px; /* Espaçamento entre botões */
-            width: 90%;
-            justify-content: center;
-        }
-        
-        .button-group {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-            width: 100%;
+            display: flex; flex-direction: column; align-items: center;
+            gap: 15px; width: 80%;
         }
 
-        #captureBtn, #zoomBtn { /* Estilo aplicado a ambos os botões */
-            flex-grow: 1; /* Faz os botões dividirem o espaço */
-            padding: 15px 10px; font-size: 16px;
+        #captureBtn {
+            width: 100%; padding: 15px 20px; font-size: 18px;
             font-weight: bold; background-color: var(--primary-color);
-            color: white; border: none; border-radius: var(--border-radius);
+            color: #121212; border: none; border-radius: var(--border-radius);
             cursor: pointer; transition: background-color 0.3s, transform 0.1s;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-            text-align: center;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
         }
 
-        #captureBtn:hover, #zoomBtn:hover { background-color: var(--primary-hover); }
-        #captureBtn:active, #zoomBtn:active { transform: scale(0.98); }
-        #captureBtn:disabled, #zoomBtn:disabled { background-color: #555; cursor: not-allowed; }
-
-        .consistency-control {
-            display: flex; align-items: center; gap: 8px;
-            cursor: pointer; user-select: none;
-        }
+        #captureBtn:hover { background-color: var(--primary-hover); }
+        #captureBtn:active { transform: scale(0.98); }
+        #captureBtn:disabled { background-color: #555; color: #aaa; cursor: not-allowed; }
 
         #status { text-align: center; min-height: 40px; color: #aaa; }
         #videoGerado { width: 100%; margin-top: 15px; }
@@ -86,24 +67,17 @@
 <body>
 
     <div class="container">
-        <h2>OCR para Vídeo com Hunyuan</h2>
+        <h2>OCR para Vídeo com Hugging Face</h2>
 
         <div id="camera-container">
             <video id="camera" autoplay playsinline muted></video>
         </div>
         <canvas id="snapshot"></canvas>
 
-        <div class="button-group">
-            <div class="controls-container">
-                <button id="zoomBtn">🔍 Zoom 1x</button>
-                <button id="captureBtn">
-                    <span>📷</span> Capturar e Gerar
-                </button>
-            </div>
-            <div class="consistency-control">
-                <input type="checkbox" id="consistencyCheck">
-                <label for="consistencyCheck">Manter consistência (usar mesma semente)</label>
-            </div>
+        <div class="controls-container">
+            <button id="captureBtn">
+                <span>📷</span> Capturar e Gerar
+            </button>
         </div>
 
         <p id="status">Aponte a câmara para um texto.</p>
@@ -116,15 +90,6 @@
         const statusEl = document.getElementById('status');
         const videoGeradoEl = document.getElementById('videoGerado');
         const captureBtnEl = document.getElementById('captureBtn');
-        const consistencyCheckEl = document.getElementById('consistencyCheck');
-        const zoomBtnEl = document.getElementById('zoomBtn'); // Referência ao botão de zoom
-
-        let lastUsedSeed = null;
-        // Variáveis para o controlo do zoom
-        let mediaTrack;
-        let currentZoom = 1;
-        const zoomLevels = [1, 2, 3];
-        let zoomCapabilities = null;
 
         async function startCamera() {
             statusEl.textContent = "A iniciar câmara...";
@@ -133,35 +98,10 @@
                     video: { facingMode: 'environment', width: { ideal: 1280 } }
                 });
                 videoEl.srcObject = stream;
-                mediaTrack = stream.getVideoTracks()[0];
-                
-                // Verifica se o dispositivo suporta zoom
-                if (mediaTrack.getCapabilities && mediaTrack.getCapabilities().zoom) {
-                    zoomCapabilities = mediaTrack.getCapabilities().zoom;
-                } else {
-                    zoomBtnEl.disabled = true;
-                    zoomBtnEl.innerText = "Zoom N/A";
-                }
                 statusEl.textContent = "Câmara pronta. Aponte para um texto.";
             } catch (err) {
                 statusEl.textContent = `❌ Erro: ${err.message}`;
-                zoomBtnEl.disabled = true;
             }
-        }
-
-        // Função para alternar o zoom
-        function toggleZoom() {
-            if (!zoomCapabilities) return;
-
-            const currentIndex = zoomLevels.indexOf(currentZoom);
-            currentZoom = zoomLevels[(currentIndex + 1) % zoomLevels.length];
-
-            if (currentZoom > zoomCapabilities.max) {
-                currentZoom = zoomLevels[0]; // Volta para 1x
-            }
-
-            mediaTrack.applyConstraints({ advanced: [{ zoom: currentZoom }] });
-            zoomBtnEl.innerText = `🔍 Zoom ${currentZoom}x`;
         }
 
         async function captureAndGenerate() {
@@ -184,7 +124,7 @@
                 const prompt = text.trim();
                 if (prompt.length < 5) throw new Error("Texto detetado é muito curto.");
                 
-                statusEl.textContent = `📝 Prompt: "${prompt}"\n\nA gerar vídeo...`;
+                statusEl.textContent = `📝 Prompt: "${prompt}"\n\nA gerar vídeo com Hugging Face...`;
 
                 await generateVideoFromPrompt(prompt);
 
@@ -197,16 +137,10 @@
         }
 
         async function generateVideoFromPrompt(prompt) {
-            const bodyPayload = { prompt };
-            if (consistencyCheckEl.checked && lastUsedSeed !== null) {
-                bodyPayload.seed = lastUsedSeed;
-                statusEl.textContent += ` (Usando semente: ${lastUsedSeed})`;
-            }
-
-            const response = await fetch('/api/gerar-video', {
+            const response = await fetch('/api/gerar-video-hf', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(bodyPayload)
+                body: JSON.stringify({ prompt: prompt })
             });
 
             if (!response.ok) {
@@ -214,19 +148,17 @@
                 throw new Error(errorData.error || "Falha na comunicação com o servidor.");
             }
 
-            const data = await response.json();
+            // **MUDANÇA IMPORTANTE:** A resposta agora é o vídeo em si (um "Blob").
+            const videoBlob = await response.blob();
             
-            if (data.videoURL) {
-                videoGeradoEl.innerHTML = `<video src="${data.videoURL}" controls autoplay loop></video>`;
-                statusEl.textContent = "✅ Vídeo gerado com sucesso!";
-                lastUsedSeed = data.seed;
-            } else {
-                throw new Error("Não foi possível obter o URL do vídeo gerado.");
-            }
+            // Cria um URL temporário para o vídeo recebido.
+            const videoUrl = URL.createObjectURL(videoBlob);
+            
+            videoGeradoEl.innerHTML = `<video src="${videoUrl}" controls autoplay loop></video>`;
+            statusEl.textContent = "✅ Vídeo gerado com sucesso!";
         }
 
         captureBtnEl.addEventListener('click', captureAndGenerate);
-        zoomBtnEl.addEventListener('click', toggleZoom); // Adiciona o listener ao botão de zoom
         startCamera();
     </script>
 </body>
