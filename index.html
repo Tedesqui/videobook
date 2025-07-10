@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Gere Vídeo com DeepAI</title>
+    <title>Gere Vídeo com Replicate</title>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.1/dist/tesseract.min.js"></script>
     <style>
         :root {
-            --primary-color: #ff8a00; /* Cor da DeepAI */
-            --primary-hover: #cc6e00;
-            --dark-bg: #121212;
+            --primary-color: #1c1c1c; /* Cor da Replicate */
+            --primary-hover: #333;
+            --dark-bg: #0a0a0a;
             --card-bg: #1e1e1e;
             --text-color: #e0e0e0;
             --border-radius: 12px;
@@ -45,14 +45,14 @@
         #captureBtn {
             width: 80%; padding: 15px 20px; font-size: 18px;
             font-weight: bold; background-color: var(--primary-color);
-            color: white; border: none; border-radius: var(--border-radius);
+            color: white; border: 1px solid #444; border-radius: var(--border-radius);
             cursor: pointer; transition: background-color 0.3s, transform 0.1s;
             display: flex; align-items: center; justify-content: center; gap: 10px;
         }
 
         #captureBtn:hover { background-color: var(--primary-hover); }
         #captureBtn:active { transform: scale(0.98); }
-        #captureBtn:disabled { background-color: #555; color: #aaa; cursor: not-allowed; }
+        #captureBtn:disabled { background-color: #2a2a2a; color: #777; cursor: not-allowed; }
 
         #status { text-align: center; min-height: 40px; color: #aaa; }
         #videoGerado { width: 100%; margin-top: 15px; }
@@ -62,7 +62,7 @@
 <body>
 
     <div class="container">
-        <h2>OCR para Vídeo com DeepAI</h2>
+        <h2>OCR para Vídeo com Replicate</h2>
 
         <div id="camera-container">
             <video id="camera" autoplay playsinline muted></video>
@@ -117,7 +117,7 @@
                 const prompt = text.trim();
                 if (prompt.length < 5) throw new Error("Texto detetado é muito curto.");
                 
-                statusEl.textContent = `📝 Prompt: "${prompt}"\n\nA gerar vídeo com DeepAI...`;
+                statusEl.textContent = `📝 Prompt: "${prompt}"\n\nA gerar vídeo com Replicate... (Isto pode demorar um pouco)`;
 
                 await generateVideoFromPrompt(prompt);
 
@@ -130,8 +130,8 @@
         }
 
         async function generateVideoFromPrompt(prompt) {
-            // Chama o novo backend da DeepAI
-            const response = await fetch('/api/gerar-video-deepai', {
+            // Chama o novo backend da Replicate
+            const response = await fetch('/api/gerar-video-replicate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ prompt: prompt })
@@ -143,7 +143,7 @@
                 throw new Error(data.error || "Falha na comunicação com o servidor.");
             }
             
-            // **MUDANÇA IMPORTANTE:** Usa o URL do vídeo diretamente.
+            // A lógica aqui continua simples, pois o backend faz todo o trabalho de espera.
             if (data.videoURL) {
                 videoGeradoEl.innerHTML = `<video src="${data.videoURL}" controls autoplay loop></video>`;
                 statusEl.textContent = "✅ Vídeo gerado com sucesso!";
