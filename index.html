@@ -43,21 +43,35 @@
         #snapshot { display: none; }
 
         .controls-container {
-            display: flex; flex-direction: column; align-items: center;
-            gap: 15px; width: 80%;
+            display: flex; /* Alterado para linha */
+            flex-direction: row;
+            align-items: center;
+            gap: 10px; /* Espaçamento entre botões */
+            width: 90%;
+            justify-content: center;
+        }
+        
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
         }
 
-        #captureBtn {
-            width: 100%; padding: 15px 20px; font-size: 18px;
+        #captureBtn, #zoomBtn { /* Estilo aplicado a ambos os botões */
+            flex-grow: 1; /* Faz os botões dividirem o espaço */
+            padding: 15px 10px; font-size: 16px;
             font-weight: bold; background-color: var(--primary-color);
             color: white; border: none; border-radius: var(--border-radius);
             cursor: pointer; transition: background-color 0.3s, transform 0.1s;
-            display: flex; align-items: center; justify-content: center; gap: 10px;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            text-align: center;
         }
 
-        #captureBtn:hover { background-color: var(--primary-hover); }
-        #captureBtn:active { transform: scale(0.98); }
-        #captureBtn:disabled { background-color: #555; cursor: not-allowed; }
+        #captureBtn:hover, #zoomBtn:hover { background-color: var(--primary-hover); }
+        #captureBtn:active, #zoomBtn:active { transform: scale(0.98); }
+        #captureBtn:disabled, #zoomBtn:disabled { background-color: #555; cursor: not-allowed; }
 
         .consistency-control {
             display: flex; align-items: center; gap: 8px;
@@ -79,10 +93,13 @@
         </div>
         <canvas id="snapshot"></canvas>
 
-        <div class="controls-container">
-            <button id="captureBtn">
-                <span>📷</span> Capturar e Gerar
-            </button>
+        <div class="button-group">
+            <div class="controls-container">
+                <button id="zoomBtn">🔍 Zoom 1x</button>
+                <button id="captureBtn">
+                    <span>📷</span> Capturar e Gerar
+                </button>
+            </div>
             <div class="consistency-control">
                 <input type="checkbox" id="consistencyCheck">
                 <label for="consistencyCheck">Manter consistência (usar mesma semente)</label>
@@ -100,15 +117,14 @@
         const videoGeradoEl = document.getElementById('videoGerado');
         const captureBtnEl = document.getElementById('captureBtn');
         const consistencyCheckEl = document.getElementById('consistencyCheck');
-
-        // 🚨 AVISO DE SEGURANÇA 🚨
-        // Colocar a sua chave de API aqui torna-a PÚBLICA.
-        // Qualquer pessoa que visite o seu site pode ver esta chave e usá-la.
-        // Isto pode resultar em custos elevados na sua conta.
-        // Use este método APENAS para testes locais e nunca para um site em produção.
-        const apiKey = "SG_27327055f4c55fad";
+        const zoomBtnEl = document.getElementById('zoomBtn'); // Referência ao botão de zoom
 
         let lastUsedSeed = null;
+        // Variáveis para o controlo do zoom
+        let mediaTrack;
+        let currentZoom = 1;
+        const zoomLevels = [1, 2, 3];
+        let zoomCapabilities = null;
 
         async function startCamera() {
             statusEl.textContent = "A iniciar câmara...";
@@ -117,23 +133,41 @@
                     video: { facingMode: 'environment', width: { ideal: 1280 } }
                 });
                 videoEl.srcObject = stream;
+                mediaTrack = stream.getVideoTracks()[0];
+                
+                // Verifica se o dispositivo suporta zoom
+                if (mediaTrack.getCapabilities && mediaTrack.getCapabilities().zoom) {
+                    zoomCapabilities = mediaTrack.getCapabilities().zoom;
+                } else {
+                    zoomBtnEl.disabled = true;
+                    zoomBtnEl.innerText = "Zoom N/A";
+                }
                 statusEl.textContent = "Câmara pronta. Aponte para um texto.";
             } catch (err) {
                 statusEl.textContent = `❌ Erro: ${err.message}`;
+                zoomBtnEl.disabled = true;
             }
+        }
+
+        // Função para alternar o zoom
+        function toggleZoom() {
+            if (!zoomCapabilities) return;
+
+            const currentIndex = zoomLevels.indexOf(currentZoom);
+            currentZoom = zoomLevels[(currentIndex + 1) % zoomLevels.length];
+
+            if (currentZoom > zoomCapabilities.max) {
+                currentZoom = zoomLevels[0]; // Volta para 1x
+            }
+
+            mediaTrack.applyConstraints({ advanced: [{ zoom: currentZoom }] });
+            zoomBtnEl.innerText = `🔍 Zoom ${currentZoom}x`;
         }
 
         async function captureAndGenerate() {
             captureBtnEl.disabled = true;
             captureBtnEl.innerHTML = `<span>⏳</span> A processar...`;
             videoGeradoEl.innerHTML = '';
-
-            if (!apiKey || apiKey === "SG_27327055f4c55fad") {
-                statusEl.textContent = "❌ Erro: A chave da API não foi definida no código.";
-                captureBtnEl.disabled = false;
-                captureBtnEl.innerHTML = `<span>📷</span> Capturar e Gerar`;
-                return;
-            }
 
             try {
                 const context = canvasEl.getContext('2d');
@@ -152,7 +186,6 @@
                 
                 statusEl.textContent = `📝 Prompt: "${prompt}"\n\nA gerar vídeo...`;
 
-                // **MUDANÇA:** Chamada direta para a API da Segmind
                 await generateVideoFromPrompt(prompt);
 
             } catch (error) {
@@ -164,48 +197,36 @@
         }
 
         async function generateVideoFromPrompt(prompt) {
-            const apiEndpoint = 'https://api.segmind.com/v1/hunyuan-video';
-            const seedToUse = consistencyCheckEl.checked && lastUsedSeed !== null
-                ? lastUsedSeed
-                : Math.floor(Math.random() * 1000000000);
-
+            const bodyPayload = { prompt };
             if (consistencyCheckEl.checked && lastUsedSeed !== null) {
-                 statusEl.textContent += ` (Usando semente: ${seedToUse})`;
+                bodyPayload.seed = lastUsedSeed;
+                statusEl.textContent += ` (Usando semente: ${lastUsedSeed})`;
             }
 
-            const response = await fetch(apiEndpoint, {
+            const response = await fetch('/api/gerar-video', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': apiKey // Chave usada diretamente aqui
-                },
-                body: JSON.stringify({
-                    prompt: prompt,
-                    negative_prompt: "text, watermark, blurry, low quality",
-                    motion_strength: 0.5,
-                    num_inference_steps: 25,
-                    seed: seedToUse
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(bodyPayload)
             });
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.message || "Falha na comunicação com a API da Segmind.");
+                throw new Error(errorData.error || "Falha na comunicação com o servidor.");
             }
 
             const data = await response.json();
             
-            const videoURL = data?.output?.[0];
-            if (videoURL) {
-                videoGeradoEl.innerHTML = `<video src="${videoURL}" controls autoplay loop></video>`;
+            if (data.videoURL) {
+                videoGeradoEl.innerHTML = `<video src="${data.videoURL}" controls autoplay loop></video>`;
                 statusEl.textContent = "✅ Vídeo gerado com sucesso!";
-                lastUsedSeed = seedToUse; // Guarda a semente para a próxima vez
+                lastUsedSeed = data.seed;
             } else {
                 throw new Error("Não foi possível obter o URL do vídeo gerado.");
             }
         }
 
         captureBtnEl.addEventListener('click', captureAndGenerate);
+        zoomBtnEl.addEventListener('click', toggleZoom); // Adiciona o listener ao botão de zoom
         startCamera();
     </script>
 </body>
