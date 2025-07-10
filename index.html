@@ -101,7 +101,14 @@
         const captureBtnEl = document.getElementById('captureBtn');
         const consistencyCheckEl = document.getElementById('consistencyCheck');
 
-        let lastUsedSeed = null; // Variável para guardar a semente
+        // 🚨 AVISO DE SEGURANÇA 🚨
+        // Colocar a sua chave de API aqui torna-a PÚBLICA.
+        // Qualquer pessoa que visite o seu site pode ver esta chave e usá-la.
+        // Isto pode resultar em custos elevados na sua conta.
+        // Use este método APENAS para testes locais e nunca para um site em produção.
+        const apiKey = "SUA_API_KEY_SECRETA_DA_SEGMIND_AQUI";
+
+        let lastUsedSeed = null;
 
         async function startCamera() {
             statusEl.textContent = "A iniciar câmara...";
@@ -121,6 +128,13 @@
             captureBtnEl.innerHTML = `<span>⏳</span> A processar...`;
             videoGeradoEl.innerHTML = '';
 
+            if (!apiKey || apiKey === "SG_6561d30a3e047f49") {
+                statusEl.textContent = "❌ Erro: A chave da API não foi definida no código.";
+                captureBtnEl.disabled = false;
+                captureBtnEl.innerHTML = `<span>📷</span> Capturar e Gerar`;
+                return;
+            }
+
             try {
                 const context = canvasEl.getContext('2d');
                 canvasEl.width = videoEl.videoWidth;
@@ -138,6 +152,7 @@
                 
                 statusEl.textContent = `📝 Prompt: "${prompt}"\n\nA gerar vídeo...`;
 
+                // **MUDANÇA:** Chamada direta para a API da Segmind
                 await generateVideoFromPrompt(prompt);
 
             } catch (error) {
@@ -149,31 +164,42 @@
         }
 
         async function generateVideoFromPrompt(prompt) {
-            const bodyPayload = { prompt };
-            // Se a checkbox estiver marcada e tivermos uma semente, envia-a para o backend
+            const apiEndpoint = 'https://api.segmind.com/v1/hunyuan-video';
+            const seedToUse = consistencyCheckEl.checked && lastUsedSeed !== null
+                ? lastUsedSeed
+                : Math.floor(Math.random() * 1000000000);
+
             if (consistencyCheckEl.checked && lastUsedSeed !== null) {
-                bodyPayload.seed = lastUsedSeed;
-                statusEl.textContent += ` (Usando semente: ${lastUsedSeed})`;
+                 statusEl.textContent += ` (Usando semente: ${seedToUse})`;
             }
 
-            const response = await fetch('/api/gerar-video', {
+            const response = await fetch(apiEndpoint, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(bodyPayload)
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': apiKey // Chave usada diretamente aqui
+                },
+                body: JSON.stringify({
+                    prompt: prompt,
+                    negative_prompt: "text, watermark, blurry, low quality",
+                    motion_strength: 0.5,
+                    num_inference_steps: 25,
+                    seed: seedToUse
+                })
             });
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.error || "Falha na comunicação com o servidor.");
+                throw new Error(errorData.message || "Falha na comunicação com a API da Segmind.");
             }
 
             const data = await response.json();
             
-            if (data.videoURL) {
-                videoGeradoEl.innerHTML = `<video src="${data.videoURL}" controls autoplay loop></video>`;
+            const videoURL = data?.output?.[0];
+            if (videoURL) {
+                videoGeradoEl.innerHTML = `<video src="${videoURL}" controls autoplay loop></video>`;
                 statusEl.textContent = "✅ Vídeo gerado com sucesso!";
-                // Guarda a semente retornada pelo backend para uso futuro
-                lastUsedSeed = data.seed; 
+                lastUsedSeed = seedToUse; // Guarda a semente para a próxima vez
             } else {
                 throw new Error("Não foi possível obter o URL do vídeo gerado.");
             }
