@@ -20,9 +20,9 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "O 'prompt' de texto é obrigatório." });
     }
 
-    // Endpoint da API de Inferência da Hugging Face para um modelo de texto-para-vídeo
-    // Modelo escolhido: zeroscope-v2-576w (um modelo popular e de boa qualidade)
-    const apiEndpoint = 'https://api-inference.huggingface.co/models/cerspense/zeroscope-v2-576w';
+    // **CORREÇÃO:** Alterado para um modelo de texto-para-vídeo mais popular e fiável.
+    // O modelo 'damo-vilab/text-to-video-ms-1.7b' é uma alternativa robusta.
+    const apiEndpoint = 'https://api-inference.huggingface.co/models/damo-vilab/text-to-video-ms-1.7b';
 
     try {
         const externalApiResponse = await fetch(apiEndpoint, {
@@ -37,31 +37,31 @@ export default async function handler(req, res) {
             })
         });
 
-        // **CORREÇÃO:** Lógica de tratamento de erros melhorada para evitar falhas de JSON.
+        // Lógica de tratamento de erros melhorada
         if (!externalApiResponse.ok) {
             let errorMessage;
+            const status = externalApiResponse.status;
             const contentType = externalApiResponse.headers.get("content-type");
 
-            // Se a resposta for JSON, processa-a como tal.
-            if (contentType && contentType.includes("application/json")) {
+            // Erro comum quando o modelo está a "acordar".
+            if (status === 503) {
+                 errorMessage = `O modelo está a carregar (Erro 503). Por favor, tente novamente dentro de 1 minuto.`;
+            } else if (contentType && contentType.includes("application/json")) {
                 const errorData = await externalApiResponse.json();
                 console.error("Erro da API da Hugging Face (JSON):", errorData);
-                errorMessage = errorData.error || `A API respondeu com o status ${externalApiResponse.status}`;
+                errorMessage = errorData.error || `A API respondeu com o status ${status}`;
             } else {
-                // Se for texto ou HTML, lê como texto para evitar o erro de parsing.
                 const errorText = await externalApiResponse.text();
                 console.error("Erro da API da Hugging Face (Texto/HTML):", errorText);
-                errorMessage = `A API devolveu um erro inesperado: "${errorText}" (Status: ${externalApiResponse.status}). Isto pode acontecer se o modelo estiver a carregar.`;
+                errorMessage = `A API devolveu um erro inesperado: "${errorText}" (Status: ${status}).`;
             }
             throw new Error(errorMessage);
         }
 
         // A API da Hugging Face para vídeo devolve os dados binários do ficheiro MP4 diretamente.
-        // Obtemos esses dados como um ArrayBuffer.
         const videoBuffer = await externalApiResponse.arrayBuffer();
 
         // Envia os dados binários do vídeo de volta para o frontend.
-        // O navegador irá interpretar isto como um ficheiro de vídeo.
         res.setHeader('Content-Type', 'video/mp4');
         return res.status(200).send(Buffer.from(videoBuffer));
 
