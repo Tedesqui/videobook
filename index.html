@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reconhecimento Facial AR - Mobile com Zoom</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
+    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+    <style>
+        body, html {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column; /* Organiza os elementos em coluna para posicionar o botão */
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+        }
+        video {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            z-index: -1; /* Mantém o vídeo no fundo */
+        }
+        #overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.6);
+            color: #fff;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 16px;
+            z-index: 10; /* Garante que a sobreposição esteja visível e acima de tudo */
+        }
+        /* Estilos adicionais para o canvas de detecção (gerado pela face-api.js) */
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 0; /* Entre o vídeo e a sobreposição */
+        }
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10; /* Garante que o botão esteja acima do vídeo/canvas */
+        }
+        button {
+            padding: 12px 25px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 30px; /* Botões arredondados */
+            background-color: #007bff;
+            color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            outline: none; /* Remove o contorno ao clicar */
+        }
+        button:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+        }
+        button:active {
+            transform: translateY(1px);
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body>
+    <video id="video" autoplay muted playsinline></video>
+
+    <div id="overlay">Carregando IA e imagens...</div>
+
+    <a-scene embedded vr-mode-ui="enabled: false">
+        <a-text id="ar-label" value="" position="0 2 -3" color="yellow" scale="2 2 2"></a-text>
+    </a-scene>
+
+    <div id="controls">
+        <button id="zoomToggleBtn" disabled>Zoom</button>
+    </div>
+
+    <script>
+        // --- 1. Seletores de Elementos HTML ---
+        const video = document.getElementById("video");
+        const overlay = document.getElementById("overlay");
+        const arLabel = document.getElementById("ar-label");
+        const zoomToggleBtn = document.getElementById('zoomToggleBtn');
+
+        // --- 2. Dados de Pessoas para Reconhecimento ---
+        const people = [
+            { name: "João", info: "Professor de Matemática, 35 anos", images: 3 },
+            { name: "Maria", info: "Arquiteta, 29 anos", images: 3 },
+            { name: "Carlos", info: "Engenheiro, 41 anos", images: 3 }
+        ];
+
+        // --- Variáveis de Controle de Câmera e Zoom ---
+        let videoTrack; // Para armazenar a trilha de vídeo da câmera para controle de zoom
+        let zoomCapabilities = {}; // Armazena as capacidades de zoom da câmera
+        let currentZoom = 1.0; // Zoom inicial (normalmente o mínimo)
+        let zoomDirection = 1; // 1 para aumentar, -1 para diminuir ou redefinir
+
+        // --- 3. Funções Assíncronas ---
+
+        /**
+         * Carrega as imagens rotuladas e extrai os descritores faciais para cada pessoa.
+         * @returns {Promise<faceapi.LabeledFaceDescriptors[]>} Uma promessa que resolve para um array de LabeledFaceDescriptors.
+         */
+        async function loadLabeledImages() {
+            return Promise.all(
+                people.map(async person => {
+                    const descriptors = [];
+                    for (let i = 1; i <= person.images; i++) {
+                        const imgPath = `labeled/${person.name}/${i}.jpg`;
+                        try {
+                            const img = await faceapi.fetchImage(imgPath);
+                            const detection = await faceapi.detectSingleFace(img)
+                                .withFaceLandmarks()
+                                .withFaceDescriptor();
+                            if (detection) {
+                                descriptors.push(detection.descriptor);
+                            }
+                        } catch (err) {
+                            console.warn(`Erro ao carregar ou processar imagem ${imgPath} para ${person.name}:`, err);
+                        }
+                    }
+                    if (descriptors.length === 0) {
+                        console.warn(`Nenhum descritor encontrado para ${person.name}. Verifique as imagens.`);
+                    }
+                    return new faceapi.LabeledFaceDescriptors(person.name, descriptors);
+                })
+            );
+        }
+
+        /**
+         * Inicia o stream de vídeo da câmera traseira e configura o zoom.
+         */
+        async function startVideo() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: { exact: "environment" } // Prioriza a câmera traseira
+                    }
+                });
+                video.srcObject = stream;
+
+                await new Promise(resolve => video.onloadedmetadata = resolve); // Espera o vídeo carregar metadados
+
+                // Obtém a trilha de vídeo para controlar o zoom
+                videoTrack = stream.getVideoTracks()[0];
+
+                // Verifica as capacidades de zoom
+                if (videoTrack && typeof videoTrack.getCapabilities === 'function') {
+                    zoomCapabilities = videoTrack.getCapabilities();
+                    if (zoomCapabilities.zoom) {
+                        const { min, current } = zoomCapabilities.zoom;
+                        currentZoom = current || min; // Inicia com o zoom atual ou mínimo
+                        console.log('Capacidades de Zoom:', zoomCapabilities.zoom);
+                        zoomToggleBtn.disabled = false; // Habilita o botão de zoom
+                        overlay.innerText = `Zoom: ${currentZoom.toFixed(2)}x - Carregando IA...`;
+                    } else {
+                        overlay.innerText = 'A câmera não suporta controle de zoom programático. Carregando IA...';
+                        zoomToggleBtn.disabled = true;
+                    }
+                } else {
+                    overlay.innerText = 'O navegador não suporta controle de zoom programático. Carregando IA...';
+                    zoomToggleBtn.disabled = true;
+                }
+
+            } catch (err) {
+                console.error("Erro ao acessar a câmera:", err);
+                overlay.innerText = "Erro: Câmera não acessível. Verifique as permissões.";
+                zoomToggleBtn.disabled = true;
+            }
+        }
+
+        /**
+         * Inicializa a aplicação, carrega os modelos de IA e inicia o processo de reconhecimento.
+         */
+        async function init() {
+            overlay.innerText = "Carregando modelos de IA...";
+            // Carrega os modelos de redes neurais da face-api.js
+            await Promise.all([
+                faceapi.nets.tinyFaceDetector.loadFromUri("https://cdn.jsdelivr.net/npm/face-api.js/weights"),
+                faceapi.nets.faceLandmark68Net.loadFromUri("https://cdn.jsdelivr.net/npm/face-api.js/weights"),
+                faceapi.nets.faceRecognitionNet.loadFromUri("https://cdn.jsdelivr.net/npm/face-api.js/weights")
+            ]).catch(err => {
+                console.error("Erro ao carregar modelos da face-api.js:", err);
+                overlay.innerText = "Erro: Falha ao carregar modelos de IA.";
+                return Promise.reject(err); // Propaga o erro para parar a execução
+            });
+
+            await startVideo(); // Inicia o feed da câmera e configura o zoom
+
+            overlay.innerText = "Carregando imagens de treinamento...";
+            const labeledDescriptors = await loadLabeledImages();
+            if (labeledDescriptors.every(ld => ld.descriptors.length === 0)) {
+                overlay.innerText = "Nenhuma pessoa reconhecível configurada. Verifique as imagens.";
+                return; // Para a execução se não houver dados de treinamento
+            }
+
+            // Cria o comparador de rostos
+            const matcher = new faceapi.FaceMatcher(labeledDescriptors, 0.5); // 0.5 é o limiar de distância
+
+            overlay.innerText = `Pronto! Zoom: ${currentZoom.toFixed(2)}x. Aproxime um rosto.`;
+
+            // --- 4. Event Listener para o Vídeo ---
+            video.addEventListener("play", () => {
+                const canvas = faceapi.createCanvasFromMedia(video);
+                document.body.append(canvas);
+
+                const displaySize = { width: video.videoWidth, height: video.videoHeight };
+                faceapi.matchDimensions(canvas, displaySize);
+
+                // Loop principal de detecção e reconhecimento
+                setInterval(async () => {
+                    const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
+                        .withFaceLandmarks()
+                        .withFaceDescriptors();
+
+                    // Redimensiona as detecções para o tamanho de exibição do canvas
+                    const resizedDetections = faceapi.resizeResults(detections, displaySize);
+
+                    // Limpa e desenha as detecções no canvas
+                    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+                    faceapi.draw.drawDetections(canvas, resizedDetections);
+
+                    if (detections.length > 0) {
+                        const bestMatch = matcher.findBestMatch(detections[0].descriptor);
+                        overlay.innerText = `Reconhecido: ${bestMatch.label} (Zoom: ${currentZoom.toFixed(2)}x)`;
+
+                        const person = people.find(p => p.name === bestMatch.label);
+                        if (person) {
+                            arLabel.setAttribute("value", `${person.name}\n${person.info}`);
+                            // Para posicionar o texto AR dinamicamente sobre o rosto:
+                            // const box = resizedDetections[0].detection.box;
+                            // const aframeX = (box.x + box.width / 2 - displaySize.width / 2) * (3 / displaySize.width);
+                            // const aframeY = -(box.y - displaySize.height / 2) * (2 / displaySize.height) + 0.5; // Ajuste para melhor visualização
+                            // arLabel.setAttribute("position", `${aframeX} ${aframeY} -3`);
+                        }
+                    } else {
+                        overlay.innerText = `Nenhum rosto detectado. (Zoom: ${currentZoom.toFixed(2)}x)`;
+                        arLabel.setAttribute("value", ""); // Limpa o texto AR
+                    }
+                }, 1500); // Executa a cada 1.5 segundos
+            });
+        }
+
+        /**
+         * Alterna o nível de zoom da câmera (aumenta ou redefine para o mínimo).
+         */
+        async function toggleZoom() {
+            if (!videoTrack || !zoomCapabilities.zoom) {
+                overlay.innerText = "Zoom não suportado pela câmera ou navegador.";
+                return;
+            }
+
+            const { min, max, step } = zoomCapabilities.zoom;
+            let targetZoom;
+            const zoomIncrement = step || 0.1; // Define um incremento padrão se 'step' não estiver disponível
+
+            if (zoomDirection === 1) { // Aumentar o zoom
+                targetZoom = currentZoom + zoomIncrement;
+                if (targetZoom >= max) {
+                    targetZoom = max;
+                    zoomDirection = -1; // Inverte a direção para diminuir/redefinir no próximo clique
+                }
+            } else { // Diminuir ou redefinir o zoom
+                targetZoom = min; // Volta para o zoom mínimo
+                zoomDirection = 1; // Inverte a direção para aumentar no próximo clique
+            }
+
+            // Garante que o zoom esteja dentro dos limites e ajusta ao passo mais próximo
+            targetZoom = Math.max(min, Math.min(max, targetZoom));
+            if (step && step > 0) {
+                 targetZoom = Math.round(targetZoom / step) * step;
+            }
+
+            console.log(`Tentando aplicar zoom: ${targetZoom.toFixed(2)}`);
+
+            try {
+                await videoTrack.applyConstraints({
+                    advanced: [{ zoom: targetZoom }]
+                });
+                currentZoom = targetZoom;
+                overlay.innerText = `Zoom: ${currentZoom.toFixed(2)}x. ${overlay.innerText.split('(')[0].trim()}`; // Atualiza o zoom na mensagem de status
+                zoomToggleBtn.textContent = (currentZoom >= max) ? "Redefinir Zoom" : "Zoom +";
+
+            } catch (err) {
+                console.error('Erro ao aplicar zoom:', err);
+                overlay.innerText = `Erro ao aplicar zoom: ${err.message}`;
+            }
+        }
+
+        // --- 5. Event Listener para o Botão de Zoom Único ---
+        zoomToggleBtn.addEventListener('click', toggleZoom);
+
+        // --- 6. Inicialização da Aplicação ---
+        init(); // Chama a função de inicialização
+    </script>
+</body>
+</html>
