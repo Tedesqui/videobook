@@ -41,12 +41,27 @@ export default async function handler(req, res) {
             body: JSON.stringify(requestBody)
         });
 
-        const data = await externalApiResponse.json();
-
+        // **CORREÇÃO:** Lógica de tratamento de erros melhorada
         if (!externalApiResponse.ok) {
-            throw new Error(data.message || "Ocorreu um erro ao gerar o vídeo.");
+            const contentType = externalApiResponse.headers.get("content-type");
+            let errorMessage;
+
+            // Se a resposta for HTML (como numa página de erro), informa o utilizador.
+            if (contentType && contentType.includes("text/html")) {
+                errorMessage = `A API devolveu um erro inesperado (provavelmente HTML). Verifique se a sua chave de API ('HUNYUAN_API_KEY') está correta nas configurações da Vercel. Status: ${externalApiResponse.status}`;
+            } else {
+                // Tenta obter uma mensagem de erro do JSON, se disponível
+                try {
+                    const errorData = await externalApiResponse.json();
+                    errorMessage = errorData.message || JSON.stringify(errorData);
+                } catch {
+                    errorMessage = `A API externa respondeu com o status ${externalApiResponse.status}.`;
+                }
+            }
+            throw new Error(errorMessage);
         }
 
+        const data = await externalApiResponse.json();
         const videoURL = data?.output?.[0];
 
         if (!videoURL) {
@@ -56,6 +71,7 @@ export default async function handler(req, res) {
         return res.status(200).json({ videoURL: videoURL, seed: seedToUse });
 
     } catch (error) {
+        console.error("Erro interno do servidor:", error);
         return res.status(500).json({ error: error.message });
     }
 }
