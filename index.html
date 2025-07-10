@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Gere Vídeo com Hugging Face</title>
+    <title>Gere Vídeo com DeepAI</title>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.1/dist/tesseract.min.js"></script>
     <style>
         :root {
-            --primary-color: #ffc222; /* Cor da Hugging Face */
-            --primary-hover: #e6b31f;
+            --primary-color: #ff8a00; /* Cor da DeepAI */
+            --primary-hover: #cc6e00;
             --dark-bg: #121212;
             --card-bg: #1e1e1e;
             --text-color: #e0e0e0;
@@ -42,15 +42,10 @@
         #camera { width: 100%; height: 100%; object-fit: cover; }
         #snapshot { display: none; }
 
-        .controls-container {
-            display: flex; flex-direction: column; align-items: center;
-            gap: 15px; width: 80%;
-        }
-
         #captureBtn {
-            width: 100%; padding: 15px 20px; font-size: 18px;
+            width: 80%; padding: 15px 20px; font-size: 18px;
             font-weight: bold; background-color: var(--primary-color);
-            color: #121212; border: none; border-radius: var(--border-radius);
+            color: white; border: none; border-radius: var(--border-radius);
             cursor: pointer; transition: background-color 0.3s, transform 0.1s;
             display: flex; align-items: center; justify-content: center; gap: 10px;
         }
@@ -67,18 +62,16 @@
 <body>
 
     <div class="container">
-        <h2>OCR para Vídeo com Hugging Face</h2>
+        <h2>OCR para Vídeo com DeepAI</h2>
 
         <div id="camera-container">
             <video id="camera" autoplay playsinline muted></video>
         </div>
         <canvas id="snapshot"></canvas>
 
-        <div class="controls-container">
-            <button id="captureBtn">
-                <span>📷</span> Capturar e Gerar
-            </button>
-        </div>
+        <button id="captureBtn">
+            <span>📷</span> Capturar e Gerar
+        </button>
 
         <p id="status">Aponte a câmara para um texto.</p>
         <div id="videoGerado"></div>
@@ -124,7 +117,7 @@
                 const prompt = text.trim();
                 if (prompt.length < 5) throw new Error("Texto detetado é muito curto.");
                 
-                statusEl.textContent = `📝 Prompt: "${prompt}"\n\nA gerar vídeo com Hugging Face...`;
+                statusEl.textContent = `📝 Prompt: "${prompt}"\n\nA gerar vídeo com DeepAI...`;
 
                 await generateVideoFromPrompt(prompt);
 
@@ -137,25 +130,26 @@
         }
 
         async function generateVideoFromPrompt(prompt) {
-            const response = await fetch('/api/gerar-video-hf', {
+            // Chama o novo backend da DeepAI
+            const response = await fetch('/api/gerar-video-deepai', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ prompt: prompt })
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || "Falha na comunicação com o servidor.");
-            }
+            const data = await response.json();
 
-            // **MUDANÇA IMPORTANTE:** A resposta agora é o vídeo em si (um "Blob").
-            const videoBlob = await response.blob();
+            if (!response.ok) {
+                throw new Error(data.error || "Falha na comunicação com o servidor.");
+            }
             
-            // Cria um URL temporário para o vídeo recebido.
-            const videoUrl = URL.createObjectURL(videoBlob);
-            
-            videoGeradoEl.innerHTML = `<video src="${videoUrl}" controls autoplay loop></video>`;
-            statusEl.textContent = "✅ Vídeo gerado com sucesso!";
+            // **MUDANÇA IMPORTANTE:** Usa o URL do vídeo diretamente.
+            if (data.videoURL) {
+                videoGeradoEl.innerHTML = `<video src="${data.videoURL}" controls autoplay loop></video>`;
+                statusEl.textContent = "✅ Vídeo gerado com sucesso!";
+            } else {
+                throw new Error("Não foi possível obter o URL do vídeo gerado.");
+            }
         }
 
         captureBtnEl.addEventListener('click', captureAndGenerate);
