@@ -37,11 +37,22 @@ export default async function handler(req, res) {
             })
         });
 
-        // Se a resposta não for bem-sucedida, tenta ler o erro como JSON
+        // **CORREÇÃO:** Lógica de tratamento de erros melhorada para evitar falhas de JSON.
         if (!externalApiResponse.ok) {
-            const errorData = await externalApiResponse.json();
-            console.error("Erro da API da Hugging Face:", errorData);
-            const errorMessage = errorData.error || `A API da Hugging Face respondeu com o status ${externalApiResponse.status}`;
+            let errorMessage;
+            const contentType = externalApiResponse.headers.get("content-type");
+
+            // Se a resposta for JSON, processa-a como tal.
+            if (contentType && contentType.includes("application/json")) {
+                const errorData = await externalApiResponse.json();
+                console.error("Erro da API da Hugging Face (JSON):", errorData);
+                errorMessage = errorData.error || `A API respondeu com o status ${externalApiResponse.status}`;
+            } else {
+                // Se for texto ou HTML, lê como texto para evitar o erro de parsing.
+                const errorText = await externalApiResponse.text();
+                console.error("Erro da API da Hugging Face (Texto/HTML):", errorText);
+                errorMessage = `A API devolveu um erro inesperado: "${errorText}" (Status: ${externalApiResponse.status}). Isto pode acontecer se o modelo estiver a carregar.`;
+            }
             throw new Error(errorMessage);
         }
 
