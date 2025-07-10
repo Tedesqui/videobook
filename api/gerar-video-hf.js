@@ -1,5 +1,3 @@
-// Ficheiro: /api/gerar-video-hf.js
-
 // A função handler é executada no servidor da Vercel, protegendo a sua chave de API.
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -20,9 +18,9 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "O 'prompt' de texto é obrigatório." });
     }
 
-    // **CORREÇÃO:** Alterado para um modelo de texto-para-vídeo mais popular e fiável.
-    // O modelo 'damo-vilab/text-to-video-ms-1.7b' é uma alternativa robusta.
-    const apiEndpoint = 'https://api-inference.huggingface.co/models/damo-vilab/text-to-video-ms-1.7b';
+    // **CORREÇÃO:** Alterado para um novo modelo de vídeo para maior fiabilidade.
+    // O modelo 'strangeman3107/animov-512x' é outra alternativa robusta.
+    const apiEndpoint = 'https://api-inference.huggingface.co/models/strangeman3107/animov-512x';
 
     try {
         const externalApiResponse = await fetch(apiEndpoint, {
@@ -43,8 +41,9 @@ export default async function handler(req, res) {
             const status = externalApiResponse.status;
             const contentType = externalApiResponse.headers.get("content-type");
 
-            // Erro comum quando o modelo está a "acordar".
-            if (status === 503) {
+            if (status === 404) {
+                errorMessage = `Modelo não encontrado (Erro 404). O modelo '${apiEndpoint}' pode estar offline ou indisponível. Por favor, tente outro modelo.`;
+            } else if (status === 503) {
                  errorMessage = `O modelo está a carregar (Erro 503). Por favor, tente novamente dentro de 1 minuto.`;
             } else if (contentType && contentType.includes("application/json")) {
                 const errorData = await externalApiResponse.json();
