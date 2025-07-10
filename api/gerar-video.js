@@ -41,21 +41,28 @@ export default async function handler(req, res) {
             body: JSON.stringify(requestBody)
         });
 
-        // **CORREÇÃO:** Lógica de tratamento de erros melhorada
+        // **CORREÇÃO:** Lógica de tratamento de erros melhorada e mais específica
         if (!externalApiResponse.ok) {
-            const contentType = externalApiResponse.headers.get("content-type");
+            const status = externalApiResponse.status;
             let errorMessage;
 
-            // Se a resposta for HTML (como numa página de erro), informa o utilizador.
-            if (contentType && contentType.includes("text/html")) {
-                errorMessage = `A API devolveu um erro inesperado (provavelmente HTML). Verifique se a sua chave de API ('HUNYUAN_API_KEY') está correta nas configurações da Vercel. Status: ${externalApiResponse.status}`;
+            // Verifica códigos de erro específicos primeiro
+            if (status === 401) {
+                errorMessage = "Erro de Autenticação (401). A sua chave de API ('HUNYUAN_API_KEY') é inválida ou foi revogada. Verifique-a nas configurações da Vercel.";
+            } else if (status === 406) {
+                errorMessage = "Créditos Insuficientes (406). A sua conta da Segmind não tem créditos suficientes para realizar esta operação.";
             } else {
-                // Tenta obter uma mensagem de erro do JSON, se disponível
-                try {
-                    const errorData = await externalApiResponse.json();
-                    errorMessage = errorData.message || JSON.stringify(errorData);
-                } catch {
-                    errorMessage = `A API externa respondeu com o status ${externalApiResponse.status}.`;
+                // Se não for um erro conhecido, verifica o tipo de conteúdo
+                const contentType = externalApiResponse.headers.get("content-type");
+                if (contentType && contentType.includes("text/html")) {
+                    errorMessage = `A API devolveu um erro inesperado (provavelmente HTML). Verifique o status da API da Segmind. Status: ${status}`;
+                } else {
+                    try {
+                        const errorData = await externalApiResponse.json();
+                        errorMessage = errorData.message || JSON.stringify(errorData);
+                    } catch {
+                        errorMessage = `A API externa respondeu com o status ${status}.`;
+                    }
                 }
             }
             throw new Error(errorMessage);
