@@ -4,7 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Adobe OCR + Replicate Video</title>
-    <!-- O Tesseract.js não é mais necessário aqui, pois o OCR é feito no backend -->
     <style>
         :root {
             --adobe-red: #FA0F00;
@@ -66,6 +65,12 @@
         button:disabled { background-color: #2a2a2a; color: #777; cursor: not-allowed; }
 
         #previewControls { display: none; }
+        
+        .consistency-control {
+            display: flex; align-items: center; gap: 8px;
+            cursor: pointer; user-select: none;
+            margin-top: 10px;
+        }
 
         #status { text-align: center; min-height: 40px; color: #aaa; }
         #videoGerado { width: 100%; margin-top: 15px; }
@@ -91,6 +96,11 @@
             <button id="retryBtn">🔄 Tentar Novamente</button>
             <button id="analyzeBtn">✅ Usar esta Foto</button>
         </div>
+        
+        <div class="consistency-control">
+            <input type="checkbox" id="consistencyCheck">
+            <label for="consistencyCheck">Manter consistência</label>
+        </div>
 
         <p id="status">Aponte a câmara para um texto.</p>
         <div id="videoGerado"></div>
@@ -106,6 +116,7 @@
         const takePhotoBtn = document.getElementById('takePhotoBtn');
         const retryBtn = document.getElementById('retryBtn');
         const analyzeBtn = document.getElementById('analyzeBtn');
+        const consistencyCheckEl = document.getElementById('consistencyCheck');
 
         const initialControls = document.getElementById('initialControls');
         const previewControls = document.getElementById('previewControls');
@@ -114,6 +125,7 @@
         let currentZoom = 1;
         const zoomLevels = [1, 2, 3];
         let zoomCapabilities = null;
+        let lastUsedSeed = null; // Variável para guardar a semente
 
         async function startCamera() {
             statusEl.textContent = "A iniciar câmara...";
@@ -172,14 +184,36 @@
             videoGeradoEl.innerHTML = '';
 
             try {
-                // Passo 1: Enviar a imagem para o backend da Adobe para OCR
                 statusEl.textContent = "🧠 A enviar imagem para Adobe OCR...";
                 const imageBase64 = canvasEl.toDataURL('image/png');
-                const textoExtraido = await getTextFromAdobe(imageBase64);
                 
-                // Passo 2: Usar o texto extraído para gerar o vídeo com a Replicate
-                statusEl.textContent = `📝 Texto da Adobe: "${textoExtraido}"\n\nA gerar vídeo com Replicate...`;
-                await generateVideoFromPrompt(textoExtraido);
+                const bodyPayload = { imageBase64 };
+                // Se a checkbox estiver marcada e tivermos uma semente, envia-a para o backend
+                if (consistencyCheckEl.checked && lastUsedSeed !== null) {
+                    bodyPayload.seed = lastUsedSeed;
+                    statusEl.textContent += ` (Usando semente: ${lastUsedSeed})`;
+                }
+
+                // **MUDANÇA:** Agora o frontend chama um único endpoint que faz tudo.
+                const response = await fetch('/api/gerar-video-replicate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(bodyPayload)
+                });
+
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || "Falha no processo de geração.");
+                }
+                
+                if (data.videoURL) {
+                    videoGeradoEl.innerHTML = `<video src="${data.videoURL}" controls autoplay loop></video>`;
+                    statusEl.textContent = "✅ Vídeo gerado com sucesso!";
+                    // **IMPORTANTE:** Guarda a semente retornada pelo backend para uso futuro
+                    lastUsedSeed = data.seed; 
+                } else {
+                    throw new Error("Não foi possível obter o URL do vídeo gerado.");
+                }
 
             } catch (error) {
                 statusEl.textContent = `❌ Erro: ${error.message}`;
@@ -188,42 +222,7 @@
                 retryBtn.disabled = false;
             }
         }
-        
-        // Nova função para chamar o backend da Adobe
-        async function getTextFromAdobe(imageBase64) {
-            const response = await fetch('/api/analisar-imagem-adobe', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ imageBase64: imageBase64 })
-            });
 
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.error || "Falha ao analisar imagem com Adobe OCR.");
-            }
-            return data.texto;
-        }
-
-        // Função que chama o backend da Replicate (inalterada)
-        async function generateVideoFromPrompt(prompt) {
-            const response = await fetch('/api/gerar-video-replicate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt: prompt })
-            });
-
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error || "Falha na comunicação com o servidor.");
-            
-            if (data.videoURL) {
-                videoGeradoEl.innerHTML = `<video src="${data.videoURL}" controls autoplay loop></video>`;
-                statusEl.textContent = "✅ Vídeo gerado com sucesso!";
-            } else {
-                throw new Error("Não foi possível obter o URL do vídeo gerado.");
-            }
-        }
-
-        // Adiciona os listeners aos botões
         zoomBtn.addEventListener('click', toggleZoom);
         takePhotoBtn.addEventListener('click', takePhoto);
         retryBtn.addEventListener('click', resetPhoto);
