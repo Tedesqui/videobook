@@ -23,8 +23,8 @@
         }
 
         .container {
-            /* Aumenta a largura máxima em 40% (de 500px para 700px) */
-            width: 100%; max-width: 700px; padding: 20px;
+            /* Aumenta a largura máxima em 10% (de 700px para 770px) */
+            width: 100%; max-width: 770px; padding: 20px;
             box-sizing: border-box; display: flex; flex-direction: column;
             align-items: center; gap: 15px;
         }
@@ -32,8 +32,8 @@
         h2 {
             text-align: center;
             margin-bottom: 10px;
-            /* Diminui o tamanho da fonte em 30% */
-            font-size: 1.4em; 
+            /* Aumenta o tamanho da fonte em 30% (de 1.4em para 1.82em) */
+            font-size: 1.82em; 
         }
 
         #camera-container {
@@ -57,7 +57,7 @@
 
         button {
             flex-grow: 1;
-            /* Diminui o padding e o tamanho da fonte em 20% */
+            /* Tamanho dos botões diminuído anteriormente */
             padding: 12px 8px; 
             font-size: 13px;
             font-weight: bold; background-color: var(--replicate-black);
@@ -100,7 +100,7 @@
 <body>
 
     <div class="container">
-        <h2>AWS Textract + Replicate Video</h2>
+        <h2>𝐕𝐈𝐃𝐄𝐎𝐁𝐎𝐎𝐊 - 𝐏𝐑𝐎𝐉𝐄𝐓𝐎 𝐃𝐄 𝐉𝐄𝐀𝐍 𝐓𝐄𝐃𝐄𝐒𝐐𝐔𝐈</h2>
 
         <div id="camera-container">
             <video id="camera" autoplay playsinline muted></video>
@@ -155,7 +155,7 @@
         const zoomLevels = [1, 2, 3];
 
         async function startCamera() {
-            statusEl.textContent = "A iniciar câmera...";
+            statusEl.textContent = "A iniciar câmara...";
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 } } });
                 videoEl.srcObject = stream;
@@ -197,7 +197,7 @@
             previewControls.style.display = 'none';
             initialControls.style.display = 'flex';
             textConfirmationContainer.style.display = 'none';
-            statusEl.textContent = "Câmara pronta. Aponte para um texto.";
+            statusEl.textContent = "Câmera pronta. Aponte para um texto.";
             videoGeradoEl.innerHTML = '';
         }
 
