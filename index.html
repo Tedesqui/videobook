@@ -129,7 +129,7 @@
             <label for="consistencyCheck">Manter consistência</label>
         </div>
 
-        <p id="status">Aponte a câmara para um texto.</p>
+        <p id="status">Aponte a câmera para um texto.</p>
         <div id="videoGerado"></div>
     </div>
 
@@ -155,7 +155,7 @@
         const zoomLevels = [1, 2, 3];
 
         async function startCamera() {
-            statusEl.textContent = "A iniciar câmara...";
+            statusEl.textContent = "A iniciar câmera...";
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 } } });
                 videoEl.srcObject = stream;
@@ -165,7 +165,7 @@
                     zoomBtn.disabled = true;
                     zoomBtn.innerText = "Zoom N/A";
                 }
-                statusEl.textContent = "Câmara pronta. Aponte para um texto.";
+                statusEl.textContent = "Câmera pronta. Aponte para um texto.";
             } catch (err) {
                 statusEl.textContent = `❌ Erro: ${err.message}`;
             }
