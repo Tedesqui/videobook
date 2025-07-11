@@ -1,11 +1,9 @@
 // Ficheiro: /api/gerar-video-replicate.js
 
-// NOTA: Para este código funcionar, o SDK da Adobe precisa de ser adicionado ao seu projeto.
-// No seu ficheiro package.json, adicione: "dependencies": { "@adobe/pdfservices-node-sdk": "..." }
+// NOTA: Para este código funcionar, o SDK da AWS precisa de ser adicionado ao seu projeto.
+// No seu ficheiro package.json, adicione: "dependencies": { "@aws-sdk/client-textract": "..." }
 
-// **CORREÇÃO FINAL:** Usar a sintaxe de módulo CommonJS (require/module.exports)
-// para garantir a compatibilidade total com o SDK da Adobe no ambiente da Vercel.
-const { ServicePrincipalCredentials, ExecutionContext, pdfServices, MimeType, IO } = require("@adobe/pdfservices-node-sdk");
+const { TextractClient, DetectDocumentTextCommand } = require("@aws-sdk/client-textract");
 const { Readable } = require("stream");
 
 // Função auxiliar para criar pausas.
@@ -13,7 +11,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * Função principal que é executada no servidor da Vercel.
- * Recebe uma imagem, extrai o texto com a Adobe OCR e gera um vídeo com a Replicate.
+ * Recebe uma imagem, extrai o texto com o Amazon Textract e gera um vídeo com a Replicate.
  */
 module.exports = async (req, res) => {
     if (req.method !== 'POST') {
@@ -21,12 +19,14 @@ module.exports = async (req, res) => {
         return res.status(405).end(`Método ${req.method} não permitido.`);
     }
 
+    // --- Obtenção das Chaves de API (Seguro) ---
     const replicateApiKey = process.env.REPLICATE_API_KEY;
-    const adobeClientId = process.env.ADOBE_CLIENT_ID;
-    const adobeClientSecret = process.env.ADOBE_CLIENT_SECRET;
+    const awsAccessKeyId = process.env.AWS_ACCESS_KEY_ID;
+    const awsSecretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+    const awsRegion = process.env.AWS_REGION;
 
-    if (!replicateApiKey || !adobeClientId || !adobeClientSecret) {
-        return res.status(500).json({ error: "Erro de configuração: uma ou mais chaves de API não estão definidas no servidor." });
+    if (!replicateApiKey || !awsAccessKeyId || !awsSecretAccessKey || !awsRegion) {
+        return res.status(500).json({ error: "Erro de configuração: uma ou mais chaves de API (Replicate ou AWS) não estão definidas no servidor." });
     }
 
     const { imageBase64, seed } = req.body;
@@ -35,13 +35,19 @@ module.exports = async (req, res) => {
     }
 
     try {
-        console.log("A iniciar extração de texto com a Adobe OCR...");
-        const prompt = await extractTextWithAdobe(imageBase64, adobeClientId, adobeClientSecret);
+        console.log("A iniciar extração de texto com o Amazon Textract...");
+        const prompt = await extractTextWithAmazonTextract(imageBase64, {
+            region: awsRegion,
+            credentials: {
+                accessKeyId: awsAccessKeyId,
+                secretAccessKey: awsSecretAccessKey,
+            },
+        });
         
         if (!prompt || prompt.trim().length < 5) {
-            throw new Error("O OCR da Adobe não conseguiu extrair texto suficiente da imagem.");
+            throw new Error("O OCR do Amazon Textract não conseguiu extrair texto suficiente da imagem.");
         }
-        console.log(`Texto extraído pela Adobe: "${prompt}"`);
+        console.log(`Texto extraído pela AWS: "${prompt}"`);
 
         console.log("A iniciar geração de vídeo com a Replicate...");
         const { videoURL, usedSeed } = await generateVideoWithReplicate(prompt, replicateApiKey, seed);
@@ -56,36 +62,35 @@ module.exports = async (req, res) => {
 };
 
 /**
- * Função para extrair texto de uma imagem usando a Adobe PDF Services API.
+ * Função para extrair texto de uma imagem usando a Amazon Textract API.
  */
-async function extractTextWithAdobe(imageBase64, clientId, clientSecret) {
+async function extractTextWithAmazonTextract(imageBase64, awsConfig) {
+    // Configura o cliente do Textract com as credenciais e região.
+    const textractClient = new TextractClient(awsConfig);
+    
+    // Converte a imagem base64 para um buffer.
     const imageBuffer = Buffer.from(imageBase64.split(';base64,').pop(), 'base64');
-    const inputStream = Readable.from(imageBuffer);
 
-    const credentials = new ServicePrincipalCredentials(clientId, clientSecret);
-    const executionContext = ExecutionContext.create(credentials);
-    const ocrOperation = pdfServices.OCR.createNew();
+    // Prepara o comando para enviar ao Textract.
+    const command = new DetectDocumentTextCommand({
+        Document: {
+            Bytes: imageBuffer,
+        },
+    });
+
+    // Envia o comando e aguarda a resposta.
+    const data = await textractClient.send(command);
     
-    const inputAsset = pdfServices.Asset.fromStream(inputStream, MimeType.PNG);
-    ocrOperation.setInput(inputAsset);
-
-    const resultAsset = await ocrOperation.execute(executionContext);
-    const stream = await IO.getResultStream(resultAsset);
-    
-    let resultJsonString = '';
-    for await (const chunk of stream) {
-        resultJsonString += chunk;
-    }
-    const resultJson = JSON.parse(resultJsonString);
-
     let extractedText = "";
-    if (resultJson && resultJson.elements) {
-        resultJson.elements.forEach(element => {
-            if (element.Text) {
-                extractedText += element.Text + " ";
+    if (data.Blocks) {
+        // Filtra apenas os blocos que são linhas de texto e junta-os.
+        data.Blocks.forEach(block => {
+            if (block.BlockType === 'LINE') {
+                extractedText += block.Text + " ";
             }
         });
     }
+
     return extractedText.trim();
 }
 
