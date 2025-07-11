@@ -1,0 +1,14 @@
+{
+  "name": "ocr-video-project",
+  "version": "1.0.0",
+  "description": "Um projeto para extrair texto de imagens e gerar vídeos.",
+  "main": "index.html",
+  "scripts": {
+    "start": "echo \"Sem script de início\""
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@adobe/pdfservices-node-sdk": "^3.4.0"
+  }
+}
