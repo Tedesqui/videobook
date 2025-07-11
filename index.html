@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Foto para Vídeo com Replicate</title>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.1/dist/tesseract.min.js"></script>
+    <title>Adobe OCR + Replicate Video</title>
+    <!-- O Tesseract.js não é mais necessário aqui, pois o OCR é feito no backend -->
     <style>
         :root {
-            --primary-color: #1c1c1c; /* Cor da Replicate */
-            --primary-hover: #333;
+            --adobe-red: #FA0F00;
+            --replicate-black: #1c1c1c;
             --dark-bg: #0a0a0a;
             --card-bg: #1e1e1e;
             --text-color: #e0e0e0;
@@ -39,13 +39,12 @@
             border: 1px solid #333;
         }
 
-        /* O vídeo e o canvas ocupam o mesmo espaço, um por cima do outro */
         #camera, #snapshot {
             width: 100%; height: 100%; object-fit: cover;
             position: absolute; top: 0; left: 0;
         }
 
-        #snapshot { display: none; } /* O canvas começa escondido */
+        #snapshot { display: none; }
 
         .controls {
             display: flex; gap: 10px; width: 90%;
@@ -54,17 +53,18 @@
         button {
             flex-grow: 1;
             padding: 15px 10px; font-size: 16px;
-            font-weight: bold; background-color: var(--primary-color);
+            font-weight: bold; background-color: var(--replicate-black);
             color: white; border: 1px solid #444; border-radius: var(--border-radius);
             cursor: pointer; transition: background-color 0.3s, transform 0.1s, opacity 0.3s;
             display: flex; align-items: center; justify-content: center; gap: 8px;
         }
+        
+        #analyzeBtn { background-color: var(--adobe-red); }
 
-        button:hover { background-color: var(--primary-hover); }
+        button:hover { filter: brightness(1.2); }
         button:active { transform: scale(0.98); }
         button:disabled { background-color: #2a2a2a; color: #777; cursor: not-allowed; }
 
-        /* Esconde os controlos que não devem aparecer no início */
         #previewControls { display: none; }
 
         #status { text-align: center; min-height: 40px; color: #aaa; }
@@ -75,20 +75,18 @@
 <body>
 
     <div class="container">
-        <h2>OCR para Vídeo com Replicate</h2>
+        <h2>Adobe OCR + Replicate Video</h2>
 
         <div id="camera-container">
             <video id="camera" autoplay playsinline muted></video>
             <canvas id="snapshot"></canvas>
         </div>
 
-        <!-- Controlos iniciais -->
         <div id="initialControls" class="controls">
             <button id="zoomBtn">🔍 Zoom 1x</button>
             <button id="takePhotoBtn">📷 Tirar Foto</button>
         </div>
 
-        <!-- Controlos da pré-visualização da foto -->
         <div id="previewControls" class="controls">
             <button id="retryBtn">🔄 Tentar Novamente</button>
             <button id="analyzeBtn">✅ Usar esta Foto</button>
@@ -104,17 +102,14 @@
         const statusEl = document.getElementById('status');
         const videoGeradoEl = document.getElementById('videoGerado');
         
-        // Botões
         const zoomBtn = document.getElementById('zoomBtn');
         const takePhotoBtn = document.getElementById('takePhotoBtn');
         const retryBtn = document.getElementById('retryBtn');
         const analyzeBtn = document.getElementById('analyzeBtn');
 
-        // Divs de controlo
         const initialControls = document.getElementById('initialControls');
         const previewControls = document.getElementById('previewControls');
 
-        // Variáveis de estado
         let mediaTrack;
         let currentZoom = 1;
         const zoomLevels = [1, 2, 3];
@@ -155,56 +150,61 @@
             canvasEl.height = videoEl.videoHeight;
             canvasEl.getContext('2d').drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
             
-            // Mostra a foto e esconde o vídeo
             canvasEl.style.display = 'block';
             videoEl.style.display = 'none';
-
-            // Troca os botões de controlo
             initialControls.style.display = 'none';
             previewControls.style.display = 'flex';
             statusEl.textContent = "Foto capturada. Deseja usá-la?";
         }
 
         function resetPhoto() {
-            // Mostra o vídeo e esconde a foto
             videoEl.style.display = 'block';
             canvasEl.style.display = 'none';
-
-            // Troca os botões de controlo de volta
             previewControls.style.display = 'none';
             initialControls.style.display = 'flex';
             statusEl.textContent = "Câmara pronta. Aponte para um texto.";
-            videoGeradoEl.innerHTML = ''; // Limpa o vídeo anterior
+            videoGeradoEl.innerHTML = '';
         }
 
-        async function analyzePhoto() {
+        async function analyzeAndGenerate() {
             analyzeBtn.disabled = true;
             retryBtn.disabled = true;
             videoGeradoEl.innerHTML = '';
 
             try {
-                statusEl.textContent = "🧠 A ler texto com OCR...";
-                const { data: { text } } = await Tesseract.recognize(canvasEl, 'eng', {
-                    logger: m => statusEl.textContent = `🧠 A ler... (${Math.round(m.progress * 100)}%)`
-                });
-
-                const prompt = text.trim();
-                if (prompt.length < 5) throw new Error("Texto detetado é muito curto.");
+                // Passo 1: Enviar a imagem para o backend da Adobe para OCR
+                statusEl.textContent = "🧠 A enviar imagem para Adobe OCR...";
+                const imageBase64 = canvasEl.toDataURL('image/png');
+                const textoExtraido = await getTextFromAdobe(imageBase64);
                 
-                statusEl.textContent = `📝 Prompt: "${prompt}"\n\nA gerar vídeo com Replicate... (Isto pode demorar um pouco)`;
-
-                await generateVideoFromPrompt(prompt);
+                // Passo 2: Usar o texto extraído para gerar o vídeo com a Replicate
+                statusEl.textContent = `📝 Texto da Adobe: "${textoExtraido}"\n\nA gerar vídeo com Replicate...`;
+                await generateVideoFromPrompt(textoExtraido);
 
             } catch (error) {
                 statusEl.textContent = `❌ Erro: ${error.message}`;
             } finally {
                 analyzeBtn.disabled = false;
                 retryBtn.disabled = false;
-                // **CORREÇÃO:** A chamada para resetPhoto() foi removida daqui.
-                // Agora, a interface espera que o utilizador clique em "Tentar Novamente".
             }
         }
+        
+        // Nova função para chamar o backend da Adobe
+        async function getTextFromAdobe(imageBase64) {
+            const response = await fetch('/api/analisar-imagem-adobe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ imageBase64: imageBase64 })
+            });
 
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || "Falha ao analisar imagem com Adobe OCR.");
+            }
+            return data.texto;
+        }
+
+        // Função que chama o backend da Replicate (inalterada)
         async function generateVideoFromPrompt(prompt) {
             const response = await fetch('/api/gerar-video-replicate', {
                 method: 'POST',
@@ -227,7 +227,7 @@
         zoomBtn.addEventListener('click', toggleZoom);
         takePhotoBtn.addEventListener('click', takePhoto);
         retryBtn.addEventListener('click', resetPhoto);
-        analyzeBtn.addEventListener('click', analyzePhoto);
+        analyzeBtn.addEventListener('click', analyzeAndGenerate);
         
         startCamera();
     </script>
