@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Gere Vídeo com Replicate</title>
+    <title>Foto para Vídeo com Replicate</title>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.1/dist/tesseract.min.js"></script>
     <style>
         :root {
@@ -39,20 +39,33 @@
             border: 1px solid #333;
         }
 
-        #camera { width: 100%; height: 100%; object-fit: cover; }
-        #snapshot { display: none; }
-
-        #captureBtn {
-            width: 80%; padding: 15px 20px; font-size: 18px;
-            font-weight: bold; background-color: var(--primary-color);
-            color: white; border: 1px solid #444; border-radius: var(--border-radius);
-            cursor: pointer; transition: background-color 0.3s, transform 0.1s;
-            display: flex; align-items: center; justify-content: center; gap: 10px;
+        /* O vídeo e o canvas ocupam o mesmo espaço, um por cima do outro */
+        #camera, #snapshot {
+            width: 100%; height: 100%; object-fit: cover;
+            position: absolute; top: 0; left: 0;
         }
 
-        #captureBtn:hover { background-color: var(--primary-hover); }
-        #captureBtn:active { transform: scale(0.98); }
-        #captureBtn:disabled { background-color: #2a2a2a; color: #777; cursor: not-allowed; }
+        #snapshot { display: none; } /* O canvas começa escondido */
+
+        .controls {
+            display: flex; gap: 10px; width: 90%;
+        }
+
+        button {
+            flex-grow: 1;
+            padding: 15px 10px; font-size: 16px;
+            font-weight: bold; background-color: var(--primary-color);
+            color: white; border: 1px solid #444; border-radius: var(--border-radius);
+            cursor: pointer; transition: background-color 0.3s, transform 0.1s, opacity 0.3s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+
+        button:hover { background-color: var(--primary-hover); }
+        button:active { transform: scale(0.98); }
+        button:disabled { background-color: #2a2a2a; color: #777; cursor: not-allowed; }
+
+        /* Esconde os controlos que não devem aparecer no início */
+        #previewControls { display: none; }
 
         #status { text-align: center; min-height: 40px; color: #aaa; }
         #videoGerado { width: 100%; margin-top: 15px; }
@@ -66,12 +79,20 @@
 
         <div id="camera-container">
             <video id="camera" autoplay playsinline muted></video>
+            <canvas id="snapshot"></canvas>
         </div>
-        <canvas id="snapshot"></canvas>
 
-        <button id="captureBtn">
-            <span>📷</span> Capturar e Gerar
-        </button>
+        <!-- Controlos iniciais -->
+        <div id="initialControls" class="controls">
+            <button id="zoomBtn">🔍 Zoom 1x</button>
+            <button id="takePhotoBtn">📷 Tirar Foto</button>
+        </div>
+
+        <!-- Controlos da pré-visualização da foto -->
+        <div id="previewControls" class="controls">
+            <button id="retryBtn">🔄 Tentar Novamente</button>
+            <button id="analyzeBtn">✅ Usar esta Foto</button>
+        </div>
 
         <p id="status">Aponte a câmara para um texto.</p>
         <div id="videoGerado"></div>
@@ -82,7 +103,22 @@
         const canvasEl = document.getElementById('snapshot');
         const statusEl = document.getElementById('status');
         const videoGeradoEl = document.getElementById('videoGerado');
-        const captureBtnEl = document.getElementById('captureBtn');
+        
+        // Botões
+        const zoomBtn = document.getElementById('zoomBtn');
+        const takePhotoBtn = document.getElementById('takePhotoBtn');
+        const retryBtn = document.getElementById('retryBtn');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+
+        // Divs de controlo
+        const initialControls = document.getElementById('initialControls');
+        const previewControls = document.getElementById('previewControls');
+
+        // Variáveis de estado
+        let mediaTrack;
+        let currentZoom = 1;
+        const zoomLevels = [1, 2, 3];
+        let zoomCapabilities = null;
 
         async function startCamera() {
             statusEl.textContent = "A iniciar câmara...";
@@ -91,26 +127,63 @@
                     video: { facingMode: 'environment', width: { ideal: 1280 } }
                 });
                 videoEl.srcObject = stream;
+                mediaTrack = stream.getVideoTracks()[0];
+                
+                if (mediaTrack.getCapabilities && mediaTrack.getCapabilities().zoom) {
+                    zoomCapabilities = mediaTrack.getCapabilities().zoom;
+                } else {
+                    zoomBtn.disabled = true;
+                    zoomBtn.innerText = "Zoom N/A";
+                }
                 statusEl.textContent = "Câmara pronta. Aponte para um texto.";
             } catch (err) {
                 statusEl.textContent = `❌ Erro: ${err.message}`;
             }
         }
 
-        async function captureAndGenerate() {
-            captureBtnEl.disabled = true;
-            captureBtnEl.innerHTML = `<span>⏳</span> A processar...`;
+        function toggleZoom() {
+            if (!zoomCapabilities) return;
+            const currentIndex = zoomLevels.indexOf(currentZoom);
+            currentZoom = zoomLevels[(currentIndex + 1) % zoomLevels.length];
+            if (currentZoom > zoomCapabilities.max) currentZoom = zoomLevels[0];
+            mediaTrack.applyConstraints({ advanced: [{ zoom: currentZoom }] });
+            zoomBtn.innerText = `🔍 Zoom ${currentZoom}x`;
+        }
+
+        function takePhoto() {
+            canvasEl.width = videoEl.videoWidth;
+            canvasEl.height = videoEl.videoHeight;
+            canvasEl.getContext('2d').drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
+            
+            // Mostra a foto e esconde o vídeo
+            canvasEl.style.display = 'block';
+            videoEl.style.display = 'none';
+
+            // Troca os botões de controlo
+            initialControls.style.display = 'none';
+            previewControls.style.display = 'flex';
+            statusEl.textContent = "Foto capturada. Deseja usá-la?";
+        }
+
+        function resetPhoto() {
+            // Mostra o vídeo e esconde a foto
+            videoEl.style.display = 'block';
+            canvasEl.style.display = 'none';
+
+            // Troca os botões de controlo de volta
+            previewControls.style.display = 'none';
+            initialControls.style.display = 'flex';
+            statusEl.textContent = "Câmara pronta. Aponte para um texto.";
+        }
+
+        async function analyzePhoto() {
+            analyzeBtn.disabled = true;
+            retryBtn.disabled = true;
             videoGeradoEl.innerHTML = '';
 
             try {
-                const context = canvasEl.getContext('2d');
-                canvasEl.width = videoEl.videoWidth;
-                canvasEl.height = videoEl.videoHeight;
-                context.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
-                const dataURL = canvasEl.toDataURL('image/png');
-
                 statusEl.textContent = "🧠 A ler texto com OCR...";
-                const { data: { text } } = await Tesseract.recognize(dataURL, 'eng', {
+                const { data: { text } } = await Tesseract.recognize(canvasEl, 'eng', {
                     logger: m => statusEl.textContent = `🧠 A ler... (${Math.round(m.progress * 100)}%)`
                 });
 
@@ -124,13 +197,14 @@
             } catch (error) {
                 statusEl.textContent = `❌ Erro: ${error.message}`;
             } finally {
-                captureBtnEl.disabled = false;
-                captureBtnEl.innerHTML = `<span>📷</span> Capturar e Gerar`;
+                analyzeBtn.disabled = false;
+                retryBtn.disabled = false;
+                // Volta ao estado inicial após a tentativa
+                resetPhoto();
             }
         }
 
         async function generateVideoFromPrompt(prompt) {
-            // Chama o novo backend da Replicate
             const response = await fetch('/api/gerar-video-replicate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -138,12 +212,8 @@
             });
 
             const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || "Falha na comunicação com o servidor.");
-            }
+            if (!response.ok) throw new Error(data.error || "Falha na comunicação com o servidor.");
             
-            // A lógica aqui continua simples, pois o backend faz todo o trabalho de espera.
             if (data.videoURL) {
                 videoGeradoEl.innerHTML = `<video src="${data.videoURL}" controls autoplay loop></video>`;
                 statusEl.textContent = "✅ Vídeo gerado com sucesso!";
@@ -152,7 +222,12 @@
             }
         }
 
-        captureBtnEl.addEventListener('click', captureAndGenerate);
+        // Adiciona os listeners aos botões
+        zoomBtn.addEventListener('click', toggleZoom);
+        takePhotoBtn.addEventListener('click', takePhoto);
+        retryBtn.addEventListener('click', resetPhoto);
+        analyzeBtn.addEventListener('click', analyzePhoto);
+        
         startCamera();
     </script>
 </body>
