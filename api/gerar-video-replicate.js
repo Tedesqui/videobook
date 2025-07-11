@@ -3,8 +3,9 @@
 // NOTA: Para este código funcionar, o SDK da Adobe precisa de ser adicionado ao seu projeto.
 // No seu ficheiro package.json, adicione: "dependencies": { "@adobe/pdfservices-node-sdk": "..." }
 
-// **CORREÇÃO FINAL:** Abordagem de importação defensiva para lidar com a incompatibilidade de módulos.
-const adobeSdkModule = require("@adobe/pdfservices-node-sdk");
+// **CORREÇÃO FINAL:** Usar a sintaxe de módulo CommonJS (require/module.exports)
+// para garantir a compatibilidade total com o SDK da Adobe no ambiente da Vercel.
+const { ServicePrincipalCredentials, ExecutionContext, pdfServices, MimeType, IO } = require("@adobe/pdfservices-node-sdk");
 const { Readable } = require("stream");
 
 // Função auxiliar para criar pausas.
@@ -14,7 +15,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
  * Função principal que é executada no servidor da Vercel.
  * Recebe uma imagem, extrai o texto com a Adobe OCR e gera um vídeo com a Replicate.
  */
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
     if (req.method !== 'POST') {
         res.setHeader('Allow', ['POST']);
         return res.status(405).end(`Método ${req.method} não permitido.`);
@@ -52,24 +53,12 @@ export default async function handler(req, res) {
         console.error("Erro no processo combinado:", error);
         return res.status(500).json({ error: error.message });
     }
-}
+};
 
 /**
  * Função para extrair texto de uma imagem usando a Adobe PDF Services API.
  */
 async function extractTextWithAdobe(imageBase64, clientId, clientSecret) {
-    // Esta é a parte crucial. Alguns ambientes (como o da Vercel) podem encapsular
-    // um módulo CommonJS dentro de uma propriedade 'default'. Este código verifica
-    // essa possibilidade e usa o objeto correto para a desestruturação.
-    const sdk = adobeSdkModule.default || adobeSdkModule;
-
-    const { ServicePrincipalCredentials, ExecutionContext, pdfServices, MimeType, IO } = sdk;
-
-    // Verifica se os construtores foram importados corretamente antes de os usar.
-    if (typeof ServicePrincipalCredentials !== 'function') {
-        throw new Error("Falha ao importar 'ServicePrincipalCredentials' do SDK da Adobe. A estrutura do módulo pode ter mudado.");
-    }
-
     const imageBuffer = Buffer.from(imageBase64.split(';base64,').pop(), 'base64');
     const inputStream = Readable.from(imageBuffer);
 
