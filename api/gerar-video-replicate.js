@@ -3,7 +3,7 @@
 // NOTA: Para este código funcionar, o SDK da Adobe precisa de ser adicionado ao seu projeto.
 // No seu ficheiro package.json, adicione: "dependencies": { "@adobe/pdfservices-node-sdk": "..." }
 
-// **CORREÇÃO:** Importa o módulo da Adobe como um objeto único.
+// Importa o módulo da Adobe como um objeto único para garantir a compatibilidade.
 import PDFServicesSdk from "@adobe/pdfservices-node-sdk";
 import { Readable } from "stream";
 
@@ -58,21 +58,20 @@ export default async function handler(req, res) {
  * Função para extrair texto de uma imagem usando a Adobe PDF Services API.
  */
 async function extractTextWithAdobe(imageBase64, clientId, clientSecret) {
-    // **CORREÇÃO:** Extrai os componentes necessários diretamente do objeto do SDK importado.
-    const { ServicePrincipalCredentials, ExecutionContext, pdfServices, MimeType, IO } = PDFServicesSdk;
-
     const imageBuffer = Buffer.from(imageBase64.split(';base64,').pop(), 'base64');
     const inputStream = Readable.from(imageBuffer);
 
-    const credentials = new ServicePrincipalCredentials(clientId, clientSecret);
-    const executionContext = ExecutionContext.create(credentials);
-    const ocrOperation = pdfServices.OCR.createNew();
+    // **CORREÇÃO:** Acedemos a cada componente diretamente a partir do objeto principal do SDK.
+    // Isto evita problemas de resolução de módulos no ambiente da Vercel.
+    const credentials = new PDFServicesSdk.ServicePrincipalCredentials(clientId, clientSecret);
+    const executionContext = PDFServicesSdk.ExecutionContext.create(credentials);
+    const ocrOperation = PDFServicesSdk.pdfServices.OCR.createNew();
     
-    const inputAsset = pdfServices.Asset.fromStream(inputStream, MimeType.PNG);
+    const inputAsset = PDFServicesSdk.pdfServices.Asset.fromStream(inputStream, PDFServicesSdk.MimeType.PNG);
     ocrOperation.setInput(inputAsset);
 
     const resultAsset = await ocrOperation.execute(executionContext);
-    const stream = await IO.getResultStream(resultAsset);
+    const stream = await PDFServicesSdk.pdfServices.IO.getResultStream(resultAsset);
     
     let resultJsonString = '';
     for await (const chunk of stream) {
