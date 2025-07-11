@@ -3,8 +3,8 @@
 // NOTA: Para este código funcionar, o SDK da Adobe precisa de ser adicionado ao seu projeto.
 // No seu ficheiro package.json, adicione: "dependencies": { "@adobe/pdfservices-node-sdk": "..." }
 
-// **CORREÇÃO:** Importa todo o namespace do SDK para evitar problemas de resolução de módulos.
-import * as PDFServicesSdk from "@adobe/pdfservices-node-sdk";
+// **CORREÇÃO:** Importa o módulo da Adobe como um objeto único.
+import PDFServicesSdk from "@adobe/pdfservices-node-sdk";
 import { Readable } from "stream";
 
 // Função auxiliar para criar pausas.
@@ -20,7 +20,6 @@ export default async function handler(req, res) {
         return res.status(405).end(`Método ${req.method} não permitido.`);
     }
 
-    // --- Obtenção das Chaves de API (Seguro) ---
     const replicateApiKey = process.env.REPLICATE_API_KEY;
     const adobeClientId = process.env.ADOBE_CLIENT_ID;
     const adobeClientSecret = process.env.ADOBE_CLIENT_SECRET;
@@ -29,14 +28,12 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: "Erro de configuração: uma ou mais chaves de API não estão definidas no servidor." });
     }
 
-    // A entrada agora é uma imagem em formato base64 e uma semente opcional.
     const { imageBase64, seed } = req.body;
     if (!imageBase64) {
         return res.status(400).json({ error: "A imagem (em base64) é obrigatória." });
     }
 
     try {
-        // --- PASSO 1: Extrair texto com a Adobe OCR API ---
         console.log("A iniciar extração de texto com a Adobe OCR...");
         const prompt = await extractTextWithAdobe(imageBase64, adobeClientId, adobeClientSecret);
         
@@ -45,12 +42,10 @@ export default async function handler(req, res) {
         }
         console.log(`Texto extraído pela Adobe: "${prompt}"`);
 
-        // --- PASSO 2: Gerar vídeo com a Replicate usando o texto extraído e a semente ---
         console.log("A iniciar geração de vídeo com a Replicate...");
         const { videoURL, usedSeed } = await generateVideoWithReplicate(prompt, replicateApiKey, seed);
         
         console.log(`Vídeo gerado com sucesso: ${videoURL} usando a semente: ${usedSeed}`);
-        // Devolve o URL do vídeo E a semente usada.
         return res.status(200).json({ videoURL: videoURL, seed: usedSeed });
 
     } catch (error) {
@@ -63,19 +58,21 @@ export default async function handler(req, res) {
  * Função para extrair texto de uma imagem usando a Adobe PDF Services API.
  */
 async function extractTextWithAdobe(imageBase64, clientId, clientSecret) {
+    // **CORREÇÃO:** Extrai os componentes necessários diretamente do objeto do SDK importado.
+    const { ServicePrincipalCredentials, ExecutionContext, pdfServices, MimeType, IO } = PDFServicesSdk;
+
     const imageBuffer = Buffer.from(imageBase64.split(';base64,').pop(), 'base64');
     const inputStream = Readable.from(imageBuffer);
 
-    // **CORREÇÃO:** Usa o namespace importado para aceder aos construtores e métodos.
-    const credentials = new PDFServicesSdk.ServicePrincipalCredentials(clientId, clientSecret);
-    const executionContext = PDFServicesSdk.ExecutionContext.create(credentials);
-    const ocrOperation = PDFServicesSdk.pdfServices.OCR.createNew();
+    const credentials = new ServicePrincipalCredentials(clientId, clientSecret);
+    const executionContext = ExecutionContext.create(credentials);
+    const ocrOperation = pdfServices.OCR.createNew();
     
-    const inputAsset = PDFServicesSdk.pdfServices.Asset.fromStream(inputStream, PDFServicesSdk.MimeType.PNG);
+    const inputAsset = pdfServices.Asset.fromStream(inputStream, MimeType.PNG);
     ocrOperation.setInput(inputAsset);
 
     const resultAsset = await ocrOperation.execute(executionContext);
-    const stream = await PDFServicesSdk.pdfServices.IO.getResultStream(resultAsset);
+    const stream = await IO.getResultStream(resultAsset);
     
     let resultJsonString = '';
     for await (const chunk of stream) {
