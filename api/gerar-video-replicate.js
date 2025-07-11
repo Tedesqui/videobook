@@ -3,9 +3,9 @@
 // NOTA: Para este código funcionar, o SDK da Adobe precisa de ser adicionado ao seu projeto.
 // No seu ficheiro package.json, adicione: "dependencies": { "@adobe/pdfservices-node-sdk": "..." }
 
-// Importa o módulo da Adobe como um objeto único para garantir a compatibilidade.
-import PDFServicesSdk from "@adobe/pdfservices-node-sdk";
-import { Readable } from "stream";
+// **CORREÇÃO:** Usar 'require' para garantir a compatibilidade com o módulo CommonJS da Adobe.
+const PDFServicesSdk = require("@adobe/pdfservices-node-sdk");
+const { Readable } = require("stream");
 
 // Função auxiliar para criar pausas.
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -61,8 +61,7 @@ async function extractTextWithAdobe(imageBase64, clientId, clientSecret) {
     const imageBuffer = Buffer.from(imageBase64.split(';base64,').pop(), 'base64');
     const inputStream = Readable.from(imageBuffer);
 
-    // **CORREÇÃO:** Acedemos a cada componente diretamente a partir do objeto principal do SDK.
-    // Isto evita problemas de resolução de módulos no ambiente da Vercel.
+    // Acedemos a cada componente diretamente a partir do objeto principal do SDK.
     const credentials = new PDFServicesSdk.ServicePrincipalCredentials(clientId, clientSecret);
     const executionContext = PDFServicesSdk.ExecutionContext.create(credentials);
     const ocrOperation = PDFServicesSdk.pdfServices.OCR.createNew();
