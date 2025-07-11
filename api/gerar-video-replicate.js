@@ -2,12 +2,9 @@
 
 // NOTA: Para este código funcionar, o SDK da Adobe precisa de ser adicionado ao seu projeto.
 // No seu ficheiro package.json, adicione: "dependencies": { "@adobe/pdfservices-node-sdk": "..." }
-import {
-    ServicePrincipalCredentials,
-    ExecutionContext,
-    pdfServices,
-    MimeType,
-} from "@adobe/pdfservices-node-sdk";
+
+// **CORREÇÃO:** Importa todo o namespace do SDK para evitar problemas de resolução de módulos.
+import * as PDFServicesSdk from "@adobe/pdfservices-node-sdk";
 import { Readable } from "stream";
 
 // Função auxiliar para criar pausas.
@@ -69,15 +66,16 @@ async function extractTextWithAdobe(imageBase64, clientId, clientSecret) {
     const imageBuffer = Buffer.from(imageBase64.split(';base64,').pop(), 'base64');
     const inputStream = Readable.from(imageBuffer);
 
-    const credentials = new ServicePrincipalCredentials(clientId, clientSecret);
-    const executionContext = ExecutionContext.create(credentials);
-    const ocrOperation = pdfServices.OCR.createNew();
+    // **CORREÇÃO:** Usa o namespace importado para aceder aos construtores e métodos.
+    const credentials = new PDFServicesSdk.ServicePrincipalCredentials(clientId, clientSecret);
+    const executionContext = PDFServicesSdk.ExecutionContext.create(credentials);
+    const ocrOperation = PDFServicesSdk.pdfServices.OCR.createNew();
     
-    const inputAsset = pdfServices.Asset.fromStream(inputStream, MimeType.PNG);
+    const inputAsset = PDFServicesSdk.pdfServices.Asset.fromStream(inputStream, PDFServicesSdk.MimeType.PNG);
     ocrOperation.setInput(inputAsset);
 
     const resultAsset = await ocrOperation.execute(executionContext);
-    const stream = await pdfServices.IO.getResultStream(resultAsset);
+    const stream = await PDFServicesSdk.pdfServices.IO.getResultStream(resultAsset);
     
     let resultJsonString = '';
     for await (const chunk of stream) {
@@ -96,11 +94,11 @@ async function extractTextWithAdobe(imageBase64, clientId, clientSecret) {
     return extractedText.trim();
 }
 
+
 /**
  * Função para gerar um vídeo a partir de um prompt de texto usando a Replicate API.
  */
 async function generateVideoWithReplicate(prompt, apiKey, seed) {
-    // Se uma semente for fornecida, usa-a. Senão, gera uma aleatória.
     const seedToUse = seed || Math.floor(Math.random() * 1000000000);
 
     const startResponse = await fetch("https://api.replicate.com/v1/predictions", {
@@ -110,7 +108,7 @@ async function generateVideoWithReplicate(prompt, apiKey, seed) {
             version: "9f747673945c62801b13b84701c783929c0ee784e4748ec062204894dda1a351",
             input: { 
                 prompt: prompt,
-                seed: seedToUse // Usa a semente aqui
+                seed: seedToUse
             },
         }),
     });
@@ -134,7 +132,6 @@ async function generateVideoWithReplicate(prompt, apiKey, seed) {
     if (prediction.status === "succeeded") {
         const videoURL = prediction.output?.[0];
         if (!videoURL) throw new Error("A resposta da Replicate não continha um URL de vídeo válido.");
-        // Devolve tanto o URL como a semente usada.
         return { videoURL: videoURL, usedSeed: seedToUse };
     } else {
         throw new Error(`A geração do vídeo na Replicate falhou: ${prediction.error}`);
