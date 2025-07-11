@@ -1,11 +1,10 @@
-// Ficheiro: /api/gerar-video-replicate.js (Agora com Adobe OCR e Consistência)
+// Ficheiro: /api/gerar-video-replicate.js
 
 // NOTA: Para este código funcionar, o SDK da Adobe precisa de ser adicionado ao seu projeto.
 // No seu ficheiro package.json, adicione: "dependencies": { "@adobe/pdfservices-node-sdk": "..." }
 
-// **CORREÇÃO:** Importa os componentes específicos diretamente do módulo usando 'require'.
-// Esta é a forma mais robusta de lidar com a compatibilidade entre módulos CommonJS (Adobe) e ES Modules (Vercel).
-const { ServicePrincipalCredentials, ExecutionContext, pdfServices, MimeType, IO } = require("@adobe/pdfservices-node-sdk");
+// **CORREÇÃO FINAL:** Abordagem de importação defensiva para lidar com a incompatibilidade de módulos.
+const adobeSdkModule = require("@adobe/pdfservices-node-sdk");
 const { Readable } = require("stream");
 
 // Função auxiliar para criar pausas.
@@ -59,10 +58,21 @@ export default async function handler(req, res) {
  * Função para extrair texto de uma imagem usando a Adobe PDF Services API.
  */
 async function extractTextWithAdobe(imageBase64, clientId, clientSecret) {
+    // Esta é a parte crucial. Alguns ambientes (como o da Vercel) podem encapsular
+    // um módulo CommonJS dentro de uma propriedade 'default'. Este código verifica
+    // essa possibilidade e usa o objeto correto para a desestruturação.
+    const sdk = adobeSdkModule.default || adobeSdkModule;
+
+    const { ServicePrincipalCredentials, ExecutionContext, pdfServices, MimeType, IO } = sdk;
+
+    // Verifica se os construtores foram importados corretamente antes de os usar.
+    if (typeof ServicePrincipalCredentials !== 'function') {
+        throw new Error("Falha ao importar 'ServicePrincipalCredentials' do SDK da Adobe. A estrutura do módulo pode ter mudado.");
+    }
+
     const imageBuffer = Buffer.from(imageBase64.split(';base64,').pop(), 'base64');
     const inputStream = Readable.from(imageBuffer);
 
-    // **CORREÇÃO:** Agora usamos as variáveis importadas diretamente.
     const credentials = new ServicePrincipalCredentials(clientId, clientSecret);
     const executionContext = ExecutionContext.create(credentials);
     const ocrOperation = pdfServices.OCR.createNew();
