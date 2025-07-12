@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>𝐕𝐈𝐃𝐄𝐎𝐁𝐎𝐎𝐊 - 𝐏𝐑𝐎𝐉𝐄𝐓𝐎 𝐃𝐄 𝐉𝐄𝐀𝐍 𝐓𝐄𝐃𝐄𝐒𝐐𝐔𝐈</title>
+    <title>𝐕𝐈𝐃𝐄𝐎𝐁𝐎𝐎𝐊 - Inteligência Artificial IA que gera vídeos através de fotos de páginas de livros</title>
     <style>
         :root {
             --aws-orange: #FF9900;
@@ -23,21 +23,21 @@
         }
 
         .container {
-            /* Aumenta a largura máxima em 10% (de 700px para 770px) */
             width: 100%; max-width: 500px; padding: 20px;   
             box-sizing: border-box; display: flex; flex-direction: column;
             align-items: center; gap: 15px;
+            /* Diminui o tamanho da fonte base do container em 30% */
+            font-size: 70%;
         }
 
         h2 {
             text-align: center;
             margin-bottom: 10px;
-            /* Aumenta o tamanho da fonte em 30% (de 1.4em para 1.82em) */
             font-size: 1.4em; 
         }
 
         #camera-container {
-            width: 100%; background-color: var(--card-bg);       
+            width: 100%; background-color: var(--card-bg);           
             border-radius: var(--border-radius); overflow: hidden;
             position: relative; aspect-ratio: 4 / 4;
             display: flex; align-items: center; justify-content: center;
@@ -57,7 +57,6 @@
 
         button {
             flex-grow: 1;
-            /* Tamanho dos botões diminuído anteriormente */
             padding: 12px 8px; 
             font-size: 13px;
             font-weight: bold; background-color: var(--replicate-black);
@@ -100,7 +99,7 @@
 <body>
 
     <div class="container">
-        <h2>𝐕𝐈𝐃𝐄𝐎𝐁𝐎𝐎𝐊 - 𝐏𝐑𝐎𝐉𝐄𝐓𝐎 𝐃𝐄 𝐉𝐄𝐀𝐍 𝐓𝐄𝐃𝐄𝐒𝐐𝐔𝐈</h2>
+        <h2>𝐕𝐈𝐃𝐄𝐎𝐁𝐎𝐎𝐊 - Inteligência Artificial IA que gera vídeos através de fotos de páginas de livros. Contato: jeantedesqui@yahoo.com.br</h2>
 
         <div id="camera-container">
             <video id="camera" autoplay playsinline muted></video>
@@ -155,7 +154,7 @@
         const zoomLevels = [1, 2, 3];
 
         async function startCamera() {
-            statusEl.textContent = "A iniciar câmara...";
+            statusEl.textContent = "A iniciar câmera...";
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 } } });
                 videoEl.srcObject = stream;
@@ -276,3 +275,4 @@
     </script>
 </body>
 </html>
+�
