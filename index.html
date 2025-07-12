@@ -16,7 +16,7 @@
 
         body, html {
             margin: 0; 
-            padding: 0 0 50px 0; 
+            padding: 0; 
             height: 100%; width: 100%;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--dark-bg); color: var(--text-color);
@@ -29,7 +29,8 @@
             box-sizing: border-box; display: flex; flex-direction: column;
             align-items: center; gap: 15px;
             font-size: 70%;
-            margin-top: 10px;
+            /* Posição ajustada para 30px para baixo */
+            margin-top: 30px;
         }
 
         h2 {
@@ -104,18 +105,12 @@
         #videoGerado { width: 100%; margin-top: 15px; }
         #videoGerado video { width: 100%; border-radius: var(--border-radius); border: 1px solid #333; }
 
-        /* Estilo para o rodapé */
-        footer {
-            position: fixed;
-            left: 0;
-            bottom: 0;
-            width: 100%;
-            background-color: #1a222c;
+        /* Estilo para o texto de contato */
+        .contact-info {
+            margin-top: 50px;
             color: #aaa;
+            font-size: 1.3em;
             text-align: center;
-            padding: 10px 0;
-            font-size: 1em;
-            border-top: 1px solid #333;
         }
     </style>
 </head>
@@ -152,13 +147,12 @@
         </div>
 
         <p id="status">Aponte a câmera para um texto.</p>
+        
         <div id="videoGerado"></div>
+        
+        <!-- Contato posicionado abaixo do status -->
+        <p class="contact-info">Contato: jeantedesqui@yahoo.com.br</p>
     </div>
-
-    <!-- Rodapé com o contato -->
-    <footer>
-        Contato: jeantedesqui@yahoo.com.br
-    </footer>
 
     <script>
         const videoEl = document.getElementById('camera');
@@ -182,7 +176,7 @@
         const zoomLevels = [1, 2, 3];
 
         async function startCamera() {
-            statusEl.textContent = "A iniciar câmara...";
+            statusEl.textContent = "A iniciar câmera...";
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 } } });
                 videoEl.srcObject = stream;
