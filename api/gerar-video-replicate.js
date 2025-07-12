@@ -1,5 +1,5 @@
 // Ficheiro: /api/gerar-video-replicate.js
-// Este script foi modificado para gerar vídeos usando o modelo I2VGen-XL, uma alternativa avançada ao Zeroscope.
+// Este script foi modificado para gerar vídeos usando o modelo AnimateDiff, uma alternativa de alta qualidade.
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -27,8 +27,8 @@ module.exports = async (req, res) => {
             method: "POST",
             headers: { "Authorization": `Token ${apiKey}`, "Content-Type": "application/json" },
             body: JSON.stringify({
-                // ALTERADO: Versão do modelo para I2VGen-XL, uma alternativa de alta qualidade.
-                version: "i-v/i2vgen-xl:5821a334d048457d973216c57945c720516723431d6835b719416a4a49310065",
+                // ALTERADO: Versão do modelo para AnimateDiff, uma alternativa de alta qualidade.
+                version: "lucataco/animate-diff:beecf59c4aee8d81bf04f0381033dfa1d6ce699485f2ae30a2c48afe5682a778",
                 input: { prompt, seed: seedToUse },
             }),
         });
