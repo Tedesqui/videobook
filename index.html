@@ -204,7 +204,7 @@
         async function analyzePhoto() {
             analyzeBtn.disabled = true;
             retryBtn.disabled = true;
-            statusEl.textContent = "🧠 A enviar imagem para AWS Textract...";
+            statusEl.textContent = "🧠 Lendo o texto...";
             try {
                 const imageBase64 = canvasEl.toDataURL('image/png');
                 const response = await fetch('/api/ocr-aws', {
