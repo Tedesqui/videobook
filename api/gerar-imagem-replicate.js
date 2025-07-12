@@ -27,15 +27,15 @@ module.exports = async (req, res) => {
             method: "POST",
             headers: { "Authorization": `Token ${apiKey}`, "Content-Type": "application/json" },
             body: JSON.stringify({
-                // ALTERADO: Versão do modelo para Stable Diffusion (geração de imagem)
-                version: "db21e45d3f7023abc2a46ee38a23973f6dce16bb082a930b0c49861e56165135",
+                // ALTERADO: Versão do modelo para uma versão mais recente do Stable Diffusion
+                version: "stability-ai/stable-diffusion:ac732df83cea7fff18b8472768c88ad041fa750ff7682a21affe81863cbe77e4",
                 input: { prompt, seed: seedToUse },
             }),
         });
 
         let prediction = await startResponse.json();
         if (startResponse.status !== 201) {
-            // ALTERADO: Mensagem de erro para refletir a geração de imagem
+            // Mensagem de erro para refletir a geração de imagem
             throw new Error(prediction.detail || "Falha ao iniciar a geração da imagem.");
         }
 
@@ -53,10 +53,10 @@ module.exports = async (req, res) => {
 
         // Verifica o resultado final
         if (prediction.status === "succeeded") {
-            // ALTERADO: Resposta para retornar `imageURL` em vez de `videoURL`
+            // Resposta para retornar `imageURL`
             res.status(200).json({ imageURL: prediction.output?.[0], seed: seedToUse });
         } else {
-            // ALTERADO: Mensagem de erro para refletir a geração de imagem
+            // Mensagem de erro para refletir a geração de imagem
             throw new Error(`A geração da imagem falhou: ${prediction.error}`);
         }
 
