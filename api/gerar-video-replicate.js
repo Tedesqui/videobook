@@ -1,5 +1,5 @@
 // Ficheiro: /api/gerar-video-replicate.js
-// Este script foi modificado para gerar vídeos usando o modelo Kling v2.1 da Replicate.
+// Este script foi modificado para gerar vídeos usando o modelo Veo-3-Fast do Google na Replicate.
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -27,8 +27,8 @@ module.exports = async (req, res) => {
             method: "POST",
             headers: { "Authorization": `Token ${apiKey}`, "Content-Type": "application/json" },
             body: JSON.stringify({
-                // ALTERADO: Versão do modelo para uma versão funcional do Kling v2.1
-                version: "kwaivgi/kling-v2.1:26f52d3c2390f1882339500b0a4c72863e45924a27315b86a416d2145320a8fb",
+                // ALTERADO: Versão do modelo para Google Veo-3-Fast, uma alternativa estável e avançada.
+                version: "google/veo-3-fast:a24a15a3118167232305c68f233ea85375522744a5647570e395438863f6057e",
                 input: { prompt, seed: seedToUse },
             }),
         });
