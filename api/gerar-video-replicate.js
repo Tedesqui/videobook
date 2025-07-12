@@ -1,4 +1,5 @@
 // Ficheiro: /api/gerar-video-replicate.js
+// Este script foi modificado para gerar vídeos usando o modelo Kling v2.1 da Replicate.
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -18,35 +19,44 @@ module.exports = async (req, res) => {
     }
 
     try {
+        // Usa a seed fornecida ou gera uma aleatória
         const seedToUse = seed || Math.floor(Math.random() * 1000000000);
+        
+        // Inicia a predição na API da Replicate
         const startResponse = await fetch("https://api.replicate.com/v1/predictions", {
             method: "POST",
             headers: { "Authorization": `Token ${apiKey}`, "Content-Type": "application/json" },
             body: JSON.stringify({
-                version: "9f747673945c62801b13b84701c783929c0ee784e4748ec062204894dda1a351",
+                // ALTERADO: Versão do modelo para Kling v2.1
+                version: "kwaivgi/kling-v2.1:1093575939826d3c2642a835017a1024345263cb88760b24013096e8344c2114",
                 input: { prompt, seed: seedToUse },
             }),
         });
 
         let prediction = await startResponse.json();
         if (startResponse.status !== 201) {
+            // Mensagem de erro para refletir a geração de vídeo
             throw new Error(prediction.detail || "Falha ao iniciar a geração do vídeo.");
         }
 
+        // Aguarda até que a geração do vídeo seja concluída ou falhe
         while (prediction.status !== "succeeded" && prediction.status !== "failed") {
-            await sleep(1000);
+            await sleep(1000); // Pausa de 1 segundo entre as verificações
             const statusResponse = await fetch(prediction.urls.get, {
                 headers: { "Authorization": `Token ${apiKey}` },
             });
             prediction = await statusResponse.json();
             if (statusResponse.status !== 200) {
-                throw new Error(prediction.detail || "Falha ao verificar o estado.");
+                throw new Error(prediction.detail || "Falha ao verificar o estado da geração.");
             }
         }
 
+        // Verifica o resultado final
         if (prediction.status === "succeeded") {
-            res.status(200).json({ videoURL: prediction.output?.[0], seed: seedToUse });
+            // Resposta para retornar `videoURL`
+            res.status(200).json({ videoURL: prediction.output, seed: seedToUse });
         } else {
+            // Mensagem de erro para refletir a geração de vídeo
             throw new Error(`A geração do vídeo falhou: ${prediction.error}`);
         }
 
