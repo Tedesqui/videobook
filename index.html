@@ -192,7 +192,7 @@
          * Inicia a câmera do dispositivo.
          */
         async function startCamera() {
-            ui.status.textContent = "A iniciar câmara...";
+            ui.status.textContent = "A iniciar câmera...";
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { facingMode: 'environment', width: { ideal: 1280 } } 
