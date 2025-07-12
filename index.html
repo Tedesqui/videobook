@@ -1,4 +1,9 @@
-�𝐈𝐃𝐄𝐎𝐁𝐎𝐎𝐊 - Inteligência Artificial (IA) que gera vídeos através de fotos de páginas de livros</title>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>𝐕𝐈𝐃𝐄𝐎𝐁𝐎𝐎𝐊 - Inteligência Artificial (IA) que gera vídeos através de fotos de páginas de livros</title>
     <style>
         :root {
             --aws-orange: #FF9900;
@@ -24,7 +29,6 @@
             box-sizing: border-box; display: flex; flex-direction: column;
             align-items: center; gap: 15px;
             font-size: 70%;
-            /* Posição ajustada para 40px para baixo (30px + 10px) */
             margin-top: 40px;
         }
 
@@ -100,9 +104,7 @@
         #videoGerado { width: 100%; margin-top: 15px; }
         #videoGerado video { width: 100%; border-radius: var(--border-radius); border: 1px solid #333; }
 
-        /* Estilo para o texto de contato */
         .contact-info {
-            /* Posição ajustada para -10px (20px - 30px) */
             margin-top: -10px;
             color: #aaa;
             font-size: 1.3em;
@@ -120,16 +122,19 @@
             <canvas id="snapshot"></canvas>
         </div>
 
+        <!-- Controlos iniciais visíveis -->
         <div id="initialControls" class="controls">
             <button id="zoomBtn">🔍 Zoom 1x</button>
             <button id="takePhotoBtn">📷 Tirar Foto</button>
         </div>
 
+        <!-- Controlos para a pré-visualização da foto (inicialmente escondidos) -->
         <div id="previewControls" class="controls">
             <button id="retryBtn">🔄 Tentar Novamente</button>
             <button id="analyzeBtn">✅ Ler Texto da Foto</button>
         </div>
         
+        <!-- Container para confirmar o texto lido (inicialmente escondido) -->
         <div id="textConfirmationContainer">
             <textarea id="ocrResultText"></textarea>
             <div class="controls" style="margin-top: 10px;">
@@ -137,93 +142,125 @@
             </div>
         </div>
         
+        <!-- Controlo de consistência -->
         <div class="consistency-control">
             <input type="checkbox" id="consistencyCheck">
             <label for="consistencyCheck">Manter consistência</label>
         </div>
 
+        <!-- Elementos de feedback e resultado -->
         <p id="status">Aponte a câmera para um texto.</p>
-        
         <div id="videoGerado"></div>
-        
-        <!-- Contato posicionado abaixo do status -->
         <p class="contact-info">Contato: jeantedesqui@yahoo.com.br</p>
     </div>
 
     <script>
-        const videoEl = document.getElementById('camera');
-        const canvasEl = document.getElementById('snapshot');
-        const statusEl = document.getElementById('status');
-        const videoGeradoEl = document.getElementById('videoGerado');
-        
-        const zoomBtn = document.getElementById('zoomBtn');
-        const takePhotoBtn = document.getElementById('takePhotoBtn');
-        const retryBtn = document.getElementById('retryBtn');
-        const analyzeBtn = document.getElementById('analyzeBtn');
-        const generateVideoBtn = document.getElementById('generateVideoBtn');
-        const consistencyCheckEl = document.getElementById('consistencyCheck');
-        const ocrResultTextEl = document.getElementById('ocrResultText');
+        // --- Seleção dos Elementos do DOM ---
+        // Agrupar todas as referências aos elementos HTML para fácil acesso.
+        const ui = {
+            camera: document.getElementById('camera'),
+            snapshot: document.getElementById('snapshot'),
+            status: document.getElementById('status'),
+            videoGerado: document.getElementById('videoGerado'),
+            ocrResultText: document.getElementById('ocrResultText'),
+            consistencyCheck: document.getElementById('consistencyCheck'),
+            buttons: {
+                zoom: document.getElementById('zoomBtn'),
+                takePhoto: document.getElementById('takePhotoBtn'),
+                retry: document.getElementById('retryBtn'),
+                analyze: document.getElementById('analyzeBtn'),
+                generateVideo: document.getElementById('generateVideoBtn'),
+            },
+            containers: {
+                initialControls: document.getElementById('initialControls'),
+                previewControls: document.getElementById('previewControls'),
+                textConfirmation: document.getElementById('textConfirmationContainer'),
+            }
+        };
 
-        const initialControls = document.getElementById('initialControls');
-        const previewControls = document.getElementById('previewControls');
-        const textConfirmationContainer = document.getElementById('textConfirmationContainer');
-
-        let mediaTrack, currentZoom = 1, zoomCapabilities = null, lastUsedSeed = null;
+        // --- Variáveis de Estado da Aplicação ---
+        let mediaTrack = null;
+        let currentZoom = 1;
         const zoomLevels = [1, 2, 3];
+        let zoomCapabilities = null;
+        let lastUsedSeed = null;
 
+        // --- Funções Principais ---
+
+        /**
+         * Inicia a câmera do dispositivo.
+         */
         async function startCamera() {
-            statusEl.textContent = "A iniciar câmara...";
+            ui.status.textContent = "A iniciar câmara...";
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 } } });
-                videoEl.srcObject = stream;
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment', width: { ideal: 1280 } } 
+                });
+                ui.camera.srcObject = stream;
                 mediaTrack = stream.getVideoTracks()[0];
                 zoomCapabilities = mediaTrack.getCapabilities().zoom;
+
                 if (!zoomCapabilities) {
-                    zoomBtn.disabled = true;
-                    zoomBtn.innerText = "Zoom N/A";
+                    ui.buttons.zoom.disabled = true;
+                    ui.buttons.zoom.innerText = "Zoom N/A";
                 }
-                statusEl.textContent = "Câmera pronta. Aponte para um texto.";
+                ui.status.textContent = "Câmera pronta. Aponte para um texto.";
             } catch (err) {
-                statusEl.textContent = `❌ Erro: ${err.message}`;
+                ui.status.textContent = `❌ Erro ao iniciar a câmera: ${err.message}`;
             }
         }
 
+        /**
+         * Alterna entre os níveis de zoom definidos.
+         */
         function toggleZoom() {
             if (!zoomCapabilities) return;
             const currentIndex = zoomLevels.indexOf(currentZoom);
             currentZoom = zoomLevels[(currentIndex + 1) % zoomLevels.length];
             if (currentZoom > zoomCapabilities.max) currentZoom = zoomLevels[0];
+            
             mediaTrack.applyConstraints({ advanced: [{ zoom: currentZoom }] });
-            zoomBtn.innerText = `🔍 Zoom ${currentZoom}x`;
+            ui.buttons.zoom.innerText = `🔍 Zoom ${currentZoom}x`;
         }
 
+        /**
+         * Captura um frame do vídeo e desenha-o no canvas.
+         */
         function takePhoto() {
-            canvasEl.width = videoEl.videoWidth;
-            canvasEl.height = videoEl.videoHeight;
-            canvasEl.getContext('2d').drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
-            canvasEl.style.display = 'block';
-            videoEl.style.display = 'none';
-            initialControls.style.display = 'none';
-            previewControls.style.display = 'flex';
-            statusEl.textContent = "Foto capturada. Deseja ler o texto?";
+            ui.snapshot.width = ui.camera.videoWidth;
+            ui.snapshot.height = ui.camera.videoHeight;
+            ui.snapshot.getContext('2d').drawImage(ui.camera, 0, 0, ui.snapshot.width, ui.snapshot.height);
+            
+            // Atualiza a UI para o modo de pré-visualização
+            ui.snapshot.style.display = 'block';
+            ui.camera.style.display = 'none';
+            ui.containers.initialControls.style.display = 'none';
+            ui.containers.previewControls.style.display = 'flex';
+            ui.status.textContent = "Foto capturada. Deseja ler o texto?";
         }
 
+        /**
+         * Volta ao modo de câmera, descartando a foto.
+         */
         function resetPhoto() {
-            videoEl.style.display = 'block';
-            canvasEl.style.display = 'none';
-            previewControls.style.display = 'none';
-            initialControls.style.display = 'flex';
-            textConfirmationContainer.style.display = 'none';
-            statusEl.textContent = "Câmera pronta. Aponte para um texto.";
-            videoGeradoEl.innerHTML = '';
+            ui.camera.style.display = 'block';
+            ui.snapshot.style.display = 'none';
+            ui.containers.previewControls.style.display = 'none';
+            ui.containers.initialControls.style.display = 'flex';
+            ui.containers.textConfirmation.style.display = 'none';
+            ui.status.textContent = "Câmera pronta. Aponte para um texto.";
+            ui.videoGerado.innerHTML = '';
         }
 
+        /**
+         * Envia a foto para o backend de OCR e mostra o resultado.
+         */
         async function analyzePhoto() {
-            analyzeBtn.disabled = true;
-            retryBtn.disabled = true;
-            statusEl.textContent = "🧠 Lendo o texto...";
+            ui.buttons.analyze.disabled = true;
+            ui.buttons.retry.disabled = true;
+            ui.status.textContent = "🧠 Lendo o texto...";
             try {
-                const imageBase64 = canvasEl.toDataURL('image/png');
+                const imageBase64 = ui.snapshot.toDataURL('image/png');
                 const response = await fetch('/api/ocr-aws', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -232,33 +269,37 @@
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error || "Falha ao ler texto.");
                 
-                ocrResultTextEl.value = data.text;
-                previewControls.style.display = 'none';
-                textConfirmationContainer.style.display = 'block';
-                statusEl.textContent = "Confirme ou edite o texto lido.";
+                ui.ocrResultText.value = data.text;
+                ui.containers.previewControls.style.display = 'none';
+                ui.containers.textConfirmation.style.display = 'block';
+                ui.status.textContent = "Confirme ou edite o texto lido.";
 
             } catch (error) {
-                statusEl.textContent = `❌ Erro: ${error.message}`;
+                ui.status.textContent = `❌ Erro no OCR: ${error.message}`;
             } finally {
-                analyzeBtn.disabled = false;
-                retryBtn.disabled = false;
+                ui.buttons.analyze.disabled = false;
+                ui.buttons.retry.disabled = false;
             }
         }
         
+        /**
+         * Envia o texto confirmado para o backend de geração de vídeo.
+         */
         async function generateVideo() {
-            generateVideoBtn.disabled = true;
-            videoGeradoEl.innerHTML = '';
-            const prompt = ocrResultTextEl.value;
+            ui.buttons.generateVideo.disabled = true;
+            ui.videoGerado.innerHTML = '';
+            const prompt = ui.ocrResultText.value;
+
             if (!prompt || prompt.length < 5) {
-                statusEl.textContent = "❌ Erro: O texto é muito curto para gerar um vídeo.";
-                generateVideoBtn.disabled = false;
+                ui.status.textContent = "❌ Erro: O texto é muito curto para gerar um vídeo.";
+                ui.buttons.generateVideo.disabled = false;
                 return;
             }
             
-            statusEl.textContent = `🎬 A enviar texto para Replicate... (Isto pode demorar um pouco)`;
+            ui.status.textContent = `🎬 A enviar texto para Replicate... (Isto pode demorar um pouco)`;
             try {
                 const bodyPayload = { prompt };
-                if (consistencyCheckEl.checked && lastUsedSeed !== null) {
+                if (ui.consistencyCheck.checked && lastUsedSeed !== null) {
                     bodyPayload.seed = lastUsedSeed;
                 }
                 const response = await fetch('/api/gerar-video-replicate', {
@@ -270,27 +311,29 @@
                 if (!response.ok) throw new Error(data.error || "Falha na geração do vídeo.");
                 
                 if (data.videoURL) {
-                    videoGeradoEl.innerHTML = `<video src="${data.videoURL}" controls autoplay loop></video>`;
-                    statusEl.textContent = "✅ Vídeo gerado com sucesso!";
+                    ui.videoGerado.innerHTML = `<video src="${data.videoURL}" controls autoplay loop></video>`;
+                    ui.status.textContent = "✅ Vídeo gerado com sucesso!";
                     lastUsedSeed = data.seed; 
                 } else {
                     throw new Error("Não foi possível obter o URL do vídeo gerado.");
                 }
             } catch (error) {
-                statusEl.textContent = `❌ Erro: ${error.message}`;
+                ui.status.textContent = `❌ Erro na geração do vídeo: ${error.message}`;
             } finally {
-                generateVideoBtn.disabled = false;
+                ui.buttons.generateVideo.disabled = false;
             }
         }
 
-        zoomBtn.addEventListener('click', toggleZoom);
-        takePhotoBtn.addEventListener('click', takePhoto);
-        retryBtn.addEventListener('click', resetPhoto);
-        analyzeBtn.addEventListener('click', analyzePhoto);
-        generateVideoBtn.addEventListener('click', generateVideo);
+        // --- Adicionar Event Listeners ---
+        // Liga as funções aos cliques nos botões correspondentes.
+        ui.buttons.zoom.addEventListener('click', toggleZoom);
+        ui.buttons.takePhoto.addEventListener('click', takePhoto);
+        ui.buttons.retry.addEventListener('click', resetPhoto);
+        ui.buttons.analyze.addEventListener('click', analyzePhoto);
+        ui.buttons.generateVideo.addEventListener('click', generateVideo);
         
+        // --- Iniciar a Aplicação ---
         startCamera();
     </script>
 </body>
 </html>
-�
