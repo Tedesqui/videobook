@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>𝐕𝐈𝐃𝐄𝐎𝐁𝐎𝐎𝐊 - Inteligência Artificial (IA) que gera vídeos através de fotos de páginas de livros</title>
+    <title>𝐕𝐈�𝐄𝐎𝐁𝐎𝐎𝐊 - Inteligência Artificial (IA) que gera vídeos através de fotos de páginas de livros</title>
     <style>
         :root {
             --aws-orange: #FF9900;
@@ -16,7 +16,6 @@
 
         body, html {
             margin: 0; 
-            /* Adiciona padding no rodapé para não sobrepor o conteúdo */
             padding: 0 0 50px 0; 
             height: 100%; width: 100%;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -105,8 +104,8 @@
         #videoGerado { width: 100%; margin-top: 15px; }
         #videoGerado video { width: 100%; border-radius: var(--border-radius); border: 1px solid #333; }
 
-        /* Estilo para o novo rodapé */
-        .footer {
+        /* Estilo para o rodapé */
+        footer {
             position: fixed;
             left: 0;
             bottom: 0;
@@ -156,10 +155,10 @@
         <div id="videoGerado"></div>
     </div>
 
-    <!-- Novo container para o rodapé -->
-    <div class="footer">
+    <!-- Rodapé com o contato -->
+    <footer>
         Contato: jeantedesqui@yahoo.com.br
-    </div>
+    </footer>
 
     <script>
         const videoEl = document.getElementById('camera');
@@ -183,7 +182,7 @@
         const zoomLevels = [1, 2, 3];
 
         async function startCamera() {
-            statusEl.textContent = "A iniciar câmera...";
+            statusEl.textContent = "A iniciar câmara...";
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 } } });
                 videoEl.srcObject = stream;
