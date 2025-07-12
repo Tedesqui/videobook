@@ -26,8 +26,9 @@
             width: 100%; max-width: 500px; padding: 20px;   
             box-sizing: border-box; display: flex; flex-direction: column;
             align-items: center; gap: 15px;
-            /* Diminui o tamanho da fonte base do container em 30% */
             font-size: 70%;
+            /* Adiciona margem no topo para mover o container para baixo */
+            margin-top: 10px;
         }
 
         h2 {
@@ -154,7 +155,7 @@
         const zoomLevels = [1, 2, 3];
 
         async function startCamera() {
-            statusEl.textContent = "A iniciar câmera...";
+            statusEl.textContent = "A iniciar câmara...";
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 } } });
                 videoEl.srcObject = stream;
@@ -275,4 +276,3 @@
     </script>
 </body>
 </html>
-�
