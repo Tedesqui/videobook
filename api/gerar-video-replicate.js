@@ -1,5 +1,5 @@
 // Ficheiro: /api/gerar-video-replicate.js
-// Este script foi modificado para gerar vídeos usando o modelo Veo-3-Fast do Google na Replicate.
+// Este script foi modificado para gerar vídeos usando o modelo Zeroscope V2 XL, uma alternativa estável e popular na Replicate.
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -27,8 +27,8 @@ module.exports = async (req, res) => {
             method: "POST",
             headers: { "Authorization": `Token ${apiKey}`, "Content-Type": "application/json" },
             body: JSON.stringify({
-                // ALTERADO: Versão do modelo para Google Veo-3-Fast, uma alternativa estável e avançada.
-                version: "google/veo-3-fast:a24a15a3118167232305c68f233ea85375522744a5647570e395438863f6057e",
+                // ALTERADO: Versão do modelo para Zeroscope V2 XL, uma alternativa estável e popular.
+                version: "anotherjesse/zeroscope-v2-xl:9f747673945c62801b13b84701c783929c0ee784e4748ec062204894dda1a351",
                 input: { prompt, seed: seedToUse },
             }),
         });
