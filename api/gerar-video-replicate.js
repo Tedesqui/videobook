@@ -27,8 +27,8 @@ module.exports = async (req, res) => {
             method: "POST",
             headers: { "Authorization": `Token ${apiKey}`, "Content-Type": "application/json" },
             body: JSON.stringify({
-                // ALTERADO: Versão do modelo para Kling v2.1
-                version: "kwaivgi/kling-v2.1:1093575939826d3c2642a835017a1024345263cb88760b24013096e8344c2114",
+                // ALTERADO: Versão do modelo para uma versão funcional do Kling v2.1
+                version: "kwaivgi/kling-v2.1:26f52d3c2390f1882339500b0a4c72863e45924a27315b86a416d2145320a8fb",
                 input: { prompt, seed: seedToUse },
             }),
         });
