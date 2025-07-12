@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>𝐈𝐌𝐀𝐆𝐄𝐁𝐎𝐎𝐊 - Inteligência Artificial (IA) que gera imagens através de fotos de páginas de livros</title>
+    <title>𝐕𝐈𝐃𝐄𝐎𝐁𝐎𝐎𝐊 - Inteligência Artificial (IA) que gera vídeos através de fotos de páginas de livros</title>
     <style>
         :root {
             --aws-orange: #FF9900;
@@ -35,7 +35,7 @@
         h2 {
             text-align: center;
             margin-bottom: 10px;
-            font-size: 1.68em; 
+            font-size: 1.4em; 
         }
 
         #camera-container {
@@ -67,7 +67,7 @@
             display: flex; align-items: center; justify-content: center; gap: 8px;
         }
         
-        #analyzeBtn, #generateImageBtn { background-color: var(--aws-orange); color: #111; }
+        #analyzeBtn, #generateVideoBtn { background-color: var(--aws-orange); color: #111; }
 
         button:hover { filter: brightness(1.2); }
         button:active { transform: scale(0.98); }
@@ -101,11 +101,12 @@
             font-size: 1.3em;
         }
         
-        #imagemGerada { width: 100%; margin-top: 15px; }
-        #imagemGerada img { width: 100%; border-radius: var(--border-radius); border: 1px solid #333; }
+        #videoGerado { width: 100%; margin-top: 15px; }
+        #videoGerado video { width: 100%; border-radius: var(--border-radius); border: 1px solid #333; }
 
         .contact-info {
-            margin-top: -70px;
+            /* Posição ajustada para -40px (-10px - 30px) */
+            margin-top: -40px;
             color: #aaa;
             font-size: 1.3em;
             text-align: center;
@@ -115,7 +116,7 @@
 <body>
 
     <div class="container">
-        <h2>𝐈𝐌𝐀𝐆𝐄𝐁𝐎𝐎𝐊 - IA que gera imagens de páginas de livros</h2>
+        <h2>𝐕𝐈𝐃𝐄𝐎𝐁𝐎𝐎𝐊 - Inteligência Artificial (IA) que gera vídeos através de fotos de páginas de livros</h2>
 
         <div id="camera-container">
             <video id="camera" autoplay playsinline muted></video>
@@ -138,7 +139,7 @@
         <div id="textConfirmationContainer">
             <textarea id="ocrResultText"></textarea>
             <div class="controls" style="margin-top: 10px;">
-                 <button id="generateImageBtn">🖼️ Gerar Imagem</button>
+                 <button id="generateVideoBtn">🎬 Gerar Vídeo</button>
             </div>
         </div>
         
@@ -150,17 +151,18 @@
 
         <!-- Elementos de feedback e resultado -->
         <p id="status">Aponte a câmera para um texto.</p>
-        <div id="imagemGerada"></div>
+        <div id="videoGerado"></div>
         <p class="contact-info">Contato: jeantedesqui@yahoo.com.br</p>
     </div>
 
     <script>
         // --- Seleção dos Elementos do DOM ---
+        // Agrupar todas as referências aos elementos HTML para fácil acesso.
         const ui = {
             camera: document.getElementById('camera'),
             snapshot: document.getElementById('snapshot'),
             status: document.getElementById('status'),
-            imagemGerada: document.getElementById('imagemGerada'), // ALTERADO
+            videoGerado: document.getElementById('videoGerado'),
             ocrResultText: document.getElementById('ocrResultText'),
             consistencyCheck: document.getElementById('consistencyCheck'),
             buttons: {
@@ -168,7 +170,7 @@
                 takePhoto: document.getElementById('takePhotoBtn'),
                 retry: document.getElementById('retryBtn'),
                 analyze: document.getElementById('analyzeBtn'),
-                generateImage: document.getElementById('generateImageBtn'), // ALTERADO
+                generateVideo: document.getElementById('generateVideoBtn'),
             },
             containers: {
                 initialControls: document.getElementById('initialControls'),
@@ -190,7 +192,7 @@
          * Inicia a câmera do dispositivo.
          */
         async function startCamera() {
-            ui.status.textContent = "A iniciar câmera...";
+            ui.status.textContent = "A iniciar câmara...";
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { facingMode: 'environment', width: { ideal: 1280 } } 
@@ -248,7 +250,7 @@
             ui.containers.initialControls.style.display = 'flex';
             ui.containers.textConfirmation.style.display = 'none';
             ui.status.textContent = "Câmera pronta. Aponte para um texto.";
-            ui.imagemGerada.innerHTML = ''; // ALTERADO
+            ui.videoGerado.innerHTML = '';
         }
 
         /**
@@ -282,55 +284,54 @@
         }
         
         /**
-         * Envia o texto confirmado para o backend de geração de imagem.
+         * Envia o texto confirmado para o backend de geração de vídeo.
          */
-        async function generateImage() { // ALTERADO
-            ui.buttons.generateImage.disabled = true; // ALTERADO
-            ui.imagemGerada.innerHTML = ''; // ALTERADO
+        async function generateVideo() {
+            ui.buttons.generateVideo.disabled = true;
+            ui.videoGerado.innerHTML = '';
             const prompt = ui.ocrResultText.value;
 
             if (!prompt || prompt.length < 5) {
-                ui.status.textContent = "❌ Erro: O texto é muito curto para gerar uma imagem."; // ALTERADO
-                ui.buttons.generateImage.disabled = false; // ALTERADO
+                ui.status.textContent = "❌ Erro: O texto é muito curto para gerar um vídeo.";
+                ui.buttons.generateVideo.disabled = false;
                 return;
             }
             
-            ui.status.textContent = `🎨 A enviar texto para Replicate... (Isto pode demorar um pouco)`; // ALTERADO
+            ui.status.textContent = `🎬 A enviar texto para Replicate... (Isto pode demorar um pouco)`;
             try {
                 const bodyPayload = { prompt };
                 if (ui.consistencyCheck.checked && lastUsedSeed !== null) {
                     bodyPayload.seed = lastUsedSeed;
                 }
-                // ALTERADO: Endpoint da API
-                const response = await fetch('/api/gerar-imagem-replicate', { 
+                const response = await fetch('/api/gerar-video-replicate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(bodyPayload)
                 });
                 const data = await response.json();
-                if (!response.ok) throw new Error(data.error || "Falha na geração da imagem."); // ALTERADO
+                if (!response.ok) throw new Error(data.error || "Falha na geração do vídeo.");
                 
-                if (data.imageURL) { // ALTERADO
-                    // ALTERADO: Cria um elemento <img> em vez de <video>
-                    ui.imagemGerada.innerHTML = `<img src="${data.imageURL}" alt="Imagem Gerada a partir do texto" />`;
-                    ui.status.textContent = "✅ Imagem gerada com sucesso!"; // ALTERADO
+                if (data.videoURL) {
+                    ui.videoGerado.innerHTML = `<video src="${data.videoURL}" controls autoplay loop></video>`;
+                    ui.status.textContent = "✅ Vídeo gerado com sucesso!";
                     lastUsedSeed = data.seed; 
                 } else {
-                    throw new Error("Não foi possível obter o URL da imagem gerada."); // ALTERADO
+                    throw new Error("Não foi possível obter o URL do vídeo gerado.");
                 }
             } catch (error) {
-                ui.status.textContent = `❌ Erro na geração da imagem: ${error.message}`; // ALTERADO
+                ui.status.textContent = `❌ Erro na geração do vídeo: ${error.message}`;
             } finally {
-                ui.buttons.generateImage.disabled = false; // ALTERADO
+                ui.buttons.generateVideo.disabled = false;
             }
         }
 
         // --- Adicionar Event Listeners ---
+        // Liga as funções aos cliques nos botões correspondentes.
         ui.buttons.zoom.addEventListener('click', toggleZoom);
         ui.buttons.takePhoto.addEventListener('click', takePhoto);
         ui.buttons.retry.addEventListener('click', resetPhoto);
         ui.buttons.analyze.addEventListener('click', analyzePhoto);
-        ui.buttons.generateImage.addEventListener('click', generateImage); // ALTERADO
+        ui.buttons.generateVideo.addEventListener('click', generateVideo);
         
         // --- Iniciar a Aplicação ---
         startCamera();
