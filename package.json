@@ -1,0 +1,14 @@
+{
+  "name": "video-generator-project",
+  "version": "1.0.0",
+  "description": "Um projeto que usa OCR para gerar vídeos.",
+  "main": "index.html",
+  "scripts": {
+    "start": "echo \"Sem script de início\""
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@aws-sdk/client-textract": "^3.58.0"
+  }
+}
