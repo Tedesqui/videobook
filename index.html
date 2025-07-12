@@ -15,11 +15,14 @@
         }
 
         body, html {
-            margin: 0; padding: 0; height: 100%; width: 100%;
+            margin: 0; 
+            /* Adiciona padding no rodapé para não sobrepor o conteúdo */
+            padding: 0 0 50px 0; 
+            height: 100%; width: 100%;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--dark-bg); color: var(--text-color);
             display: flex; flex-direction: column; align-items: center;
-            justify-content: center; overflow: hidden;
+            justify-content: center; overflow-y: auto;
         }
 
         .container {
@@ -77,7 +80,6 @@
             display: flex; align-items: center; gap: 8px;
             cursor: pointer; user-select: none;
             margin-top: 10px;
-            /* Aumenta o tamanho da fonte em 30% */
             font-size: 1.3em;
         }
         
@@ -97,18 +99,31 @@
             text-align: center;
             min-height: 40px;
             color: #ccc;
-            /* Aumenta o tamanho da fonte em 30% */
             font-size: 1.3em;
         }
         
         #videoGerado { width: 100%; margin-top: 15px; }
         #videoGerado video { width: 100%; border-radius: var(--border-radius); border: 1px solid #333; }
+
+        /* Estilo para o novo rodapé */
+        .footer {
+            position: fixed;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            background-color: #1a222c;
+            color: #aaa;
+            text-align: center;
+            padding: 10px 0;
+            font-size: 1em;
+            border-top: 1px solid #333;
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h2>𝐕𝐈𝐃𝐄𝐎𝐁𝐎𝐎𝐊 - Inteligência Artificial (IA) que gera vídeos através de fotos de páginas de livros. Contato: jeantedesqui@yahoo.com.br</h2>
+        <h2>𝐕𝐈𝐃𝐄𝐎𝐁𝐎�𝐊 - Inteligência Artificial (IA) que gera vídeos através de fotos de páginas de livros</h2>
 
         <div id="camera-container">
             <video id="camera" autoplay playsinline muted></video>
@@ -141,6 +156,11 @@
         <div id="videoGerado"></div>
     </div>
 
+    <!-- Novo container para o rodapé -->
+    <div class="footer">
+        Contato: jeantedesqui@yahoo.com.br
+    </div>
+
     <script>
         const videoEl = document.getElementById('camera');
         const canvasEl = document.getElementById('snapshot');
@@ -163,7 +183,7 @@
         const zoomLevels = [1, 2, 3];
 
         async function startCamera() {
-            statusEl.textContent = "A iniciar câmera...";
+            statusEl.textContent = "A iniciar câmara...";
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 } } });
                 videoEl.srcObject = stream;
