@@ -1,5 +1,5 @@
 // Ficheiro: /api/gerar-video-replicate.js
-// Este script foi modificado para gerar vídeos usando o modelo Zeroscope V2 XL, uma alternativa estável e popular na Replicate.
+// Este script foi modificado para gerar vídeos usando o modelo I2VGen-XL, uma alternativa avançada ao Zeroscope.
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -27,8 +27,8 @@ module.exports = async (req, res) => {
             method: "POST",
             headers: { "Authorization": `Token ${apiKey}`, "Content-Type": "application/json" },
             body: JSON.stringify({
-                // ALTERADO: Versão do modelo para Zeroscope V2 XL, uma alternativa estável e popular.
-                version: "anotherjesse/zeroscope-v2-xl:9f747673945c62801b13b84701c783929c0ee784e4748ec062204894dda1a351",
+                // ALTERADO: Versão do modelo para I2VGen-XL, uma alternativa de alta qualidade.
+                version: "i-v/i2vgen-xl:5821a334d048457d973216c57945c720516723431d6835b719416a4a49310065",
                 input: { prompt, seed: seedToUse },
             }),
         });
