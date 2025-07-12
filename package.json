@@ -1,14 +1,16 @@
 {
-  "name": "video-generator-project",
+  "name": "imagebook-app",
   "version": "1.0.0",
-  "description": "Um projeto que usa OCR para gerar vídeos.",
-  "main": "index.html",
+  "description": "Uma aplicação que usa OCR para ler texto de imagens e gera novas imagens a partir desse texto usando IA.",
+  "main": "index.js",
   "scripts": {
-    "start": "echo \"Sem script de início\""
+    "start": "echo \"Nenhum script de início definido. Use 'vercel dev' para desenvolvimento local.\" && exit 1",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "@aws-sdk/client-textract": "^3.58.0"
-  }
+    "aws-sdk": "^2.1589.0"
+  },
+  "devDependencies": {},
+  "author": "jeantedesqui@yahoo.com.br",
+  "license": "ISC"
 }
