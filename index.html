@@ -115,7 +115,7 @@
 <body>
 
     <div class="container">
-        <h2>𝐈𝐌𝐀�𝐄𝐁𝐎𝐎𝐊 - IA que gera imagens de páginas de livros</h2>
+        <h2>𝐈𝐌𝐀𝐆𝐄𝐁𝐎𝐎𝐊 - IA que gera imagens de páginas de livros</h2>
 
         <div id="camera-container">
             <video id="camera" autoplay playsinline muted></video>
@@ -190,7 +190,7 @@
          * Inicia a câmera do dispositivo.
          */
         async function startCamera() {
-            ui.status.textContent = "A iniciar câmara...";
+            ui.status.textContent = "A iniciar câmera...";
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { facingMode: 'environment', width: { ideal: 1280 } } 
