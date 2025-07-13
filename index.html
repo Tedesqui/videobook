@@ -42,7 +42,7 @@
         #camera-container {
             width: 100%; background-color: var(--card-bg);           
             border-radius: var(--border-radius); overflow: hidden;
-            position: relative; aspect-ratio: 4 / 5;
+            position: relative; aspect-ratio: 4 / 4;
             display: flex; align-items: center; justify-content: center;
             border: 1px solid #333;
         }
@@ -298,7 +298,7 @@
                 return;
             }
             
-            ui.status.textContent = `🎬 Criando vídeos... (Isto pode demorar um pouco)`;
+            ui.status.textContent = `🎬 Criando vídeo... (Isto pode demorar um pouco)`;
             try {
                 const bodyPayload = { prompt };
                 if (ui.consistencyCheck.checked && lastUsedSeed !== null) {
