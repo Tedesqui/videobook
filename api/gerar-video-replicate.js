@@ -1,5 +1,5 @@
 // Ficheiro: /api/gerar-video-replicate.js
-// Este script foi modificado para gerar vídeos usando o modelo AnimateDiff, uma alternativa de alta qualidade.
+// Este script foi modificado para gerar vídeos usando o modelo Google Veo 3, uma alternativa de ponta.
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -27,8 +27,8 @@ module.exports = async (req, res) => {
             method: "POST",
             headers: { "Authorization": `Token ${apiKey}`, "Content-Type": "application/json" },
             body: JSON.stringify({
-                // ALTERADO: Versão do modelo para AnimateDiff, uma alternativa de alta qualidade.
-                version: "lucataco/animate-diff:beecf59c4aee8d81bf04f0381033dfa1d6ce699485f2ae30a2c48afe5682a778",
+                // ALTERADO: Versão do modelo para Google Veo 3, uma alternativa de ponta.
+                version: "google/veo-3:a24a15a3118167232305c68f233ea85375522744a5647570e3g",
                 input: { prompt, seed: seedToUse },
             }),
         });
