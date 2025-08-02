@@ -3,169 +3,146 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>𝐕𝐈𝐃𝐄𝐎𝐁𝐎𝐎𝐊 - Inteligência Artificial (IA) que gera vídeos através de fotos de páginas de livros</title>
+    <title>𝐕𝐈𝐃𝐄𝐎𝐁𝐎𝐎𝐊 - IA que gera vídeos com AWS Textract e fal.ai</title>
     <style>
         :root {
+            --fal-purple: #6E56CF;
             --aws-orange: #FF9900;
-            --replicate-black: #1c1c1c;
-            --dark-bg: #232F3E;
-            --card-bg: #1e1e1e;
-            --text-color: #FFFFFF;
+            --dark-bg: #111827;
+            --card-bg: #1F2937;
+            --text-color: #F9FAFB;
             --border-radius: 12px;
         }
-
         body, html {
-            margin: 0; 
-            padding: 0; 
-            height: 100%; width: 100%;
+            margin: 0; padding: 0; height: 100%; width: 100%;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--dark-bg); color: var(--text-color);
             display: flex; flex-direction: column; align-items: center;
-            justify-content: center; overflow-y: auto;
+            justify-content: flex-start; /* Alinhado ao topo para scroll */
+            overflow-y: auto; padding-top: 20px;
         }
-
         .container {
-            width: 100%; max-width: 500px; padding: 20px;   
+            width: 100%; max-width: 500px; padding: 20px;    
             box-sizing: border-box; display: flex; flex-direction: column;
             align-items: center; gap: 15px;
-            font-size: 70%;
-            margin-top: 40px;
         }
-
         h2 {
-            text-align: center;
-            margin-bottom: 10px;
-            /* ALTERADO: Aumentado o tamanho da fonte em 10% (de 1.4em para 1.54em) */
-            font-size: 1.54em; 
+            text-align: center; margin-bottom: 10px;
+            font-size: 1.5em;
         }
-
         #camera-container {
-            width: 100%; background-color: var(--card-bg);           
+            width: 100%; background-color: var(--card-bg);            
             border-radius: var(--border-radius); overflow: hidden;
             position: relative; aspect-ratio: 4 / 4;
             display: flex; align-items: center; justify-content: center;
-            border: 1px solid #333;
+            border: 1px solid #374151;
         }
-
         #camera, #snapshot {
             width: 100%; height: 100%; object-fit: cover;
             position: absolute; top: 0; left: 0;
         }
-
         #snapshot { display: none; }
-
         .controls {
-            display: flex; gap: 10px; width: 90%;
+            display: flex; gap: 10px; width: 100%;
         }
-
         button {
-            flex-grow: 1;
-            padding: 12px 8px; 
-            font-size: 13px;
-            font-weight: bold; background-color: var(--replicate-black);
-            color: white; border: 1px solid #444; border-radius: var(--border-radius);
-            cursor: pointer; transition: background-color 0.3s, transform 0.1s, opacity 0.3s;
+            flex-grow: 1; padding: 12px 8px;    
+            font-size: 14px; font-weight: bold; background-color: #374151;
+            color: white; border: 1px solid #4B5563; border-radius: var(--border-radius);
+            cursor: pointer; transition: background-color 0.3s, transform 0.1s;
             display: flex; align-items: center; justify-content: center; gap: 8px;
         }
+        #analyzeBtn { background-color: var(--aws-orange); }
+        #generateVideoBtn { background-color: var(--fal-purple); }
+        button:hover:not(:disabled) { filter: brightness(1.2); }
+        button:active:not(:disabled) { transform: scale(0.98); }
+        button:disabled { background-color: #4B5563; color: #9CA3AF; cursor: not-allowed; }
         
-        #analyzeBtn, #generateVideoBtn { background-color: var(--aws-orange); color: #111; }
-
-        button:hover { filter: brightness(1.2); }
-        button:active { transform: scale(0.98); }
-        button:disabled { background-color: #2a2a2a; color: #777; cursor: not-allowed; }
-
         #previewControls, #textConfirmationContainer { display: none; }
         
-        .consistency-control {
-            display: flex; align-items: center; gap: 8px;
-            cursor: pointer; user-select: none;
-            margin-top: 10px;
-            font-size: 1.3em;
-        }
-        
         #ocrResultText {
-            width: 90%;
-            height: 100px;
+            width: 100%;
+            height: 120px;
             background-color: var(--card-bg);
-            border: 1px solid #444;
+            border: 1px solid #4B5563;
             color: var(--text-color);
             border-radius: var(--border-radius);
             padding: 10px;
-            font-size: 16px;
+            font-size: 14px;
             margin-top: 10px;
+            box-sizing: border-box;
         }
-
+        /* Estilo para o container do checkbox */
+        .consistency-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            margin-top: 10px;
+            padding: 8px;
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            color: #D1D5DB;
+            font-size: 0.9em;
+            box-sizing: border-box;
+        }
         #status {
-            text-align: center;
-            min-height: 40px;
-            color: #ccc;
-            font-size: 1.3em;
+            text-align: center; min-height: 40px;
+            color: #D1D5DB; font-size: 1.1em;
         }
-        
         #videoGerado { width: 100%; margin-top: 15px; }
-        #videoGerado video { width: 100%; border-radius: var(--border-radius); border: 1px solid #333; }
-
+        #videoGerado video { width: 100%; border-radius: var(--border-radius); border: 1px solid #374151; }
         .contact-info {
-            /* Posição ajustada para -40px (-10px - 30px) */
-            margin-top: -40px;
-            color: #aaa;
-            font-size: 1.3em;
-            text-align: center;
+            margin-top: 20px; color: #6B7280;
+            font-size: 0.9em; text-align: center;
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h2>𝐕𝐈𝐃𝐄𝐎𝐁𝐎𝐎𝐊 - Inteligência Artificial (IA) que gera vídeos através de fotos de páginas de livros</h2>
+        <h2>𝐕𝐈𝐃𝐄𝐎𝐁𝐎𝐎𝐊 - IA que gera vídeos com AWS Textract e fal.ai</h2>
 
         <div id="camera-container">
             <video id="camera" autoplay playsinline muted></video>
             <canvas id="snapshot"></canvas>
         </div>
 
-        <!-- Controlos iniciais visíveis -->
         <div id="initialControls" class="controls">
             <button id="zoomBtn">🔍 Zoom 1x</button>
             <button id="takePhotoBtn">📷 Tirar Foto</button>
         </div>
 
-        <!-- Controlos para a pré-visualização da foto (inicialmente escondidos) -->
         <div id="previewControls" class="controls">
             <button id="retryBtn">🔄 Tentar Novamente</button>
-            <button id="analyzeBtn">✅ Ler Texto da Foto</button>
+            <button id="analyzeBtn">📖 Ler Texto da Foto</button>
         </div>
         
-        <!-- Container para confirmar o texto lido (inicialmente escondido) -->
-        <div id="textConfirmationContainer">
-            <textarea id="ocrResultText"></textarea>
+        <div id="textConfirmationContainer" class="w-full">
+            <textarea id="ocrResultText" placeholder="Texto extraído aparecerá aqui..."></textarea>
             <div class="controls" style="margin-top: 10px;">
-                 <button id="generateVideoBtn">🎬 Gerar Vídeo</button>
+                 <button id="generateVideoBtn">🎬 Gerar Vídeo com Texto</button>
             </div>
         </div>
         
-        <!-- Controlo de consistência -->
         <div class="consistency-control">
-            <input type="checkbox" id="consistencyCheck">
-            <label for="consistencyCheck">Manter consistência</label>
+            <input type="checkbox" id="consistencyCheck" class="w-4 h-4 accent-fal-purple">
+            <label for="consistencyCheck">Manter consistência com vídeo anterior</label>
         </div>
-
-        <!-- Elementos de feedback e resultado -->
-        <p id="status">Aponte a câmera para um texto.</p>
+        
+        <p id="status">Aponte a câmera para uma página de livro.</p>
         <div id="videoGerado"></div>
-        <p class="contact-info">Contato: jeantedesqui@yahoo.com.br</p>
+        
     </div>
 
     <script>
-        // --- Seleção dos Elementos do DOM ---
-        // Agrupar todas as referências aos elementos HTML para fácil acesso.
         const ui = {
             camera: document.getElementById('camera'),
             snapshot: document.getElementById('snapshot'),
             status: document.getElementById('status'),
             videoGerado: document.getElementById('videoGerado'),
             ocrResultText: document.getElementById('ocrResultText'),
-            consistencyCheck: document.getElementById('consistencyCheck'),
+            consistencyCheck: document.getElementById('consistencyCheck'), // Referência ao checkbox
             buttons: {
                 zoom: document.getElementById('zoomBtn'),
                 takePhoto: document.getElementById('takePhotoBtn'),
@@ -180,20 +157,14 @@
             }
         };
 
-        // --- Variáveis de Estado da Aplicação ---
         let mediaTrack = null;
         let currentZoom = 1;
         const zoomLevels = [1, 2, 3];
         let zoomCapabilities = null;
-        let lastUsedSeed = null;
+        let lastUsedSeed = null; // Variável para guardar a semente do último vídeo
 
-        // --- Funções Principais ---
-
-        /**
-         * Inicia a câmera do dispositivo.
-         */
         async function startCamera() {
-            ui.status.textContent = "A iniciar câmera...";
+            ui.status.textContent = "Iniciando câmera...";
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { facingMode: 'environment', width: { ideal: 1280 } } 
@@ -206,15 +177,12 @@
                     ui.buttons.zoom.disabled = true;
                     ui.buttons.zoom.innerText = "Zoom N/A";
                 }
-                ui.status.textContent = "Câmera pronta. Aponte para um texto.";
+                ui.status.textContent = "Câmera pronta. Aponte para a página.";
             } catch (err) {
                 ui.status.textContent = `❌ Erro ao iniciar a câmera: ${err.message}`;
             }
         }
 
-        /**
-         * Alterna entre os níveis de zoom definidos.
-         */
         function toggleZoom() {
             if (!zoomCapabilities) return;
             const currentIndex = zoomLevels.indexOf(currentZoom);
@@ -225,42 +193,34 @@
             ui.buttons.zoom.innerText = `🔍 Zoom ${currentZoom}x`;
         }
 
-        /**
-         * Captura um frame do vídeo e desenha-o no canvas.
-         */
         function takePhoto() {
+            const context = ui.snapshot.getContext('2d');
             ui.snapshot.width = ui.camera.videoWidth;
             ui.snapshot.height = ui.camera.videoHeight;
-            ui.snapshot.getContext('2d').drawImage(ui.camera, 0, 0, ui.snapshot.width, ui.snapshot.height);
+            context.drawImage(ui.camera, 0, 0, ui.snapshot.width, ui.snapshot.height);
             
-            // Atualiza a UI para o modo de pré-visualização
             ui.snapshot.style.display = 'block';
             ui.camera.style.display = 'none';
             ui.containers.initialControls.style.display = 'none';
             ui.containers.previewControls.style.display = 'flex';
-            ui.status.textContent = "Foto capturada. Deseja ler o texto?";
+            ui.status.textContent = "Foto capturada. Pronto para ler o texto?";
         }
 
-        /**
-         * Volta ao modo de câmera, descartando a foto.
-         */
         function resetPhoto() {
             ui.camera.style.display = 'block';
             ui.snapshot.style.display = 'none';
             ui.containers.previewControls.style.display = 'none';
             ui.containers.initialControls.style.display = 'flex';
             ui.containers.textConfirmation.style.display = 'none';
-            ui.status.textContent = "Câmera pronta. Aponte para um texto.";
+            ui.status.textContent = "Câmera pronta. Aponte para a página.";
             ui.videoGerado.innerHTML = '';
+            // Não reseta o lastUsedSeed para permitir consistência entre fotos diferentes
         }
 
-        /**
-         * Envia a foto para o backend de OCR e mostra o resultado.
-         */
         async function analyzePhoto() {
             ui.buttons.analyze.disabled = true;
             ui.buttons.retry.disabled = true;
-            ui.status.textContent = "🧠 Lendo o texto...";
+            ui.status.textContent = "🧠 Lendo o texto com AWS Textract...";
             try {
                 const imageBase64 = ui.snapshot.toDataURL('image/png');
                 const response = await fetch('/api/ocr-aws', {
@@ -274,7 +234,7 @@
                 ui.ocrResultText.value = data.text;
                 ui.containers.previewControls.style.display = 'none';
                 ui.containers.textConfirmation.style.display = 'block';
-                ui.status.textContent = "Confirme ou edite o texto lido.";
+                ui.status.textContent = "Confirme ou edite o texto e gere o vídeo.";
 
             } catch (error) {
                 ui.status.textContent = `❌ Erro no OCR: ${error.message}`;
@@ -284,57 +244,61 @@
             }
         }
         
-        /**
-         * Envia o texto confirmado para o backend de geração de vídeo.
-         */
         async function generateVideo() {
             ui.buttons.generateVideo.disabled = true;
+            ui.buttons.retry.disabled = true;
             ui.videoGerado.innerHTML = '';
             const prompt = ui.ocrResultText.value;
 
-            if (!prompt || prompt.length < 5) {
+            if (!prompt || prompt.length < 10) {
                 ui.status.textContent = "❌ Erro: O texto é muito curto para gerar um vídeo.";
                 ui.buttons.generateVideo.disabled = false;
+                ui.buttons.retry.disabled = false;
                 return;
             }
             
-            ui.status.textContent = `🎬 Criando vídeo... (Isto pode demorar um pouco)`;
+            ui.status.textContent = `🎨 Gerando imagem e vídeo... (Isso pode demorar até 2 minutos)`;
             try {
-                const bodyPayload = { prompt };
+                // Prepara o corpo da requisição
+                const payload = { prompt };
+                
+                // Se o checkbox estiver marcado e houver uma semente salva, envia a semente
                 if (ui.consistencyCheck.checked && lastUsedSeed !== null) {
-                    bodyPayload.seed = lastUsedSeed;
+                    payload.seed = lastUsedSeed;
+                    console.log(`Enviando com a semente de consistência: ${lastUsedSeed}`);
                 }
-                const response = await fetch('/api/gerar-video-replicate', {
+
+                const response = await fetch('/api/gerar-video-com-texto-fal', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(bodyPayload)
+                    body: JSON.stringify(payload)
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error || "Falha na geração do vídeo.");
                 
-                if (data.videoURL) {
-                    ui.videoGerado.innerHTML = `<video src="${data.videoURL}" controls autoplay loop></video>`;
+                if (data.videoUrl) {
+                    ui.videoGerado.innerHTML = `<video src="${data.videoUrl}" controls autoplay loop></video>`;
                     ui.status.textContent = "✅ Vídeo gerado com sucesso!";
-                    lastUsedSeed = data.seed; 
+                    // Salva a nova semente retornada pelo backend para o próximo uso
+                    lastUsedSeed = data.seed;
+                    console.log(`Nova semente recebida e salva: ${lastUsedSeed}`);
                 } else {
                     throw new Error("Não foi possível obter o URL do vídeo gerado.");
                 }
             } catch (error) {
                 ui.status.textContent = `❌ Erro na geração do vídeo: ${error.message}`;
             } finally {
-                ui.buttons.generateVideo.disabled = false;
+                ui.buttons.retry.disabled = false;
+                ui.buttons.generateVideo.disabled = false; // Reabilita o botão de gerar também
             }
         }
 
-        // --- Adicionar Event Listeners ---
-        // Liga as funções aos cliques nos botões correspondentes.
         ui.buttons.zoom.addEventListener('click', toggleZoom);
         ui.buttons.takePhoto.addEventListener('click', takePhoto);
         ui.buttons.retry.addEventListener('click', resetPhoto);
         ui.buttons.analyze.addEventListener('click', analyzePhoto);
         ui.buttons.generateVideo.addEventListener('click', generateVideo);
         
-        // --- Iniciar a Aplicação ---
         startCamera();
     </script>
 </body>
