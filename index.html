@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>𝐕𝐈𝐃𝐄𝐎𝐁𝐎𝐎𝐊 - IA que gera vídeos com AWS Textract e fal.ai</title>
+    <title>𝐕𝐈𝐃𝐄𝐎𝐁𝐎𝐎𝐊 - IA que gera vídeos a partir de páginas de livros</title>
     <style>
         :root {
             --fal-purple: #6E56CF;
@@ -101,7 +101,7 @@
 <body>
 
     <div class="container">
-        <h2>𝐕𝐈𝐃𝐄𝐎𝐁𝐎𝐎𝐊 - IA que gera vídeos com AWS Textract e fal.ai</h2>
+        <h2>𝐕𝐈𝐃𝐄𝐎𝐁𝐎𝐎𝐊 - IA que gera vídeos a partir de páginas de livros</h2>
 
         <div id="camera-container">
             <video id="camera" autoplay playsinline muted></video>
@@ -220,7 +220,7 @@
         async function analyzePhoto() {
             ui.buttons.analyze.disabled = true;
             ui.buttons.retry.disabled = true;
-            ui.status.textContent = "🧠 Lendo o texto com AWS Textract...";
+            ui.status.textContent = "🧠 Lendo o texto...";
             try {
                 const imageBase64 = ui.snapshot.toDataURL('image/png');
                 const response = await fetch('/api/ocr-aws', {
