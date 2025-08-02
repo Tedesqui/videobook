@@ -1,14 +1,23 @@
 {
-  "name": "video-generator-project",
+  "name": "videobook-backend",
   "version": "1.0.0",
-  "description": "Um projeto que usa OCR para gerar vídeos.",
-  "main": "index.html",
+  "description": "Backend functions for the VIDEOBOOK project.",
+  "main": "index.js",
+  "type": "module",
   "scripts": {
-    "start": "echo \"Sem script de início\""
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": [
+    "ai",
+    "fal.ai",
+    "aws",
+    "textract",
+    "video-generation"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@aws-sdk/client-textract": "^3.58.0"
+    "@aws-sdk/client-textract": "^3.583.0",
+    "@fal-ai/serverless-client": "^0.8.2"
   }
 }
