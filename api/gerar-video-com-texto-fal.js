@@ -47,7 +47,8 @@ async function handler(req, res) {
     
     const videoInput = {
         prompt: `${prompt}, cinematic, beautiful, book illustration, hyperrealistic, 4k, detailed`,
-        aspect_ratio: "16:9"
+        aspect_ratio: "16:9",
+        num_frames: 120 // Define a duração para 5 segundos (120 frames / 24 fps)
     };
 
     if (seed) {
