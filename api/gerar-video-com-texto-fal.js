@@ -17,7 +17,7 @@ const allowCors = fn => async (req, res) => {
 };
 
 /**
- * Handler principal da API que recebe um texto, gera uma imagem e a anima.
+ * Handler principal da API que recebe um texto e gera um vídeo diretamente.
  */
 async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -30,7 +30,7 @@ async function handler(req, res) {
       console.error("Chave de API da fal.ai não configurada.");
       return res.status(500).json({ error: 'Chave de API da fal.ai não configurada no servidor.' });
     }
-
+    
     // Inicializa o cliente da fal.ai com a chave do ambiente
     fal.config({
         credentials: process.env.FAL_API_KEY,
@@ -42,42 +42,27 @@ async function handler(req, res) {
       return res.status(400).json({ error: 'Nenhum texto (prompt) fornecido.' });
     }
 
-    // --- ETAPA 1: Gerar uma imagem a partir do texto ---
-    console.log("Gerando imagem a partir do texto...");
-    const imageInput = {
+    // --- ETAPA ÚNICA: Gerar vídeo diretamente do texto ---
+    console.log("Gerando vídeo diretamente do texto com wan/v2.2-5b/text-to-video...");
+    
+    const videoInput = {
         prompt: `${prompt}, cinematic, epic, book illustration, beautiful`, // Adiciona termos para melhorar a qualidade
-        negative_prompt: "text, watermark, blurry, ugly",
     };
 
-    // Adiciona a semente à requisição da imagem, se ela foi enviada pelo frontend
+    // Adiciona a semente à requisição, se ela foi enviada pelo frontend
     if (seed) {
-        imageInput.seed = seed;
+        videoInput.seed = seed;
     }
 
-    // Chama o modelo de geração de imagem (fast-sdxl)
-    const imageResult = await fal.subscribe("fal-ai/fast-sdxl", {
-      input: imageInput,
+    // Chama o modelo de geração de vídeo diretamente
+    const videoResult = await fal.subscribe("wan/v2.2-5b/text-to-video", {
+      input: videoInput,
       logs: true,
     });
-
-    if (!imageResult?.images?.[0]?.url) {
-        throw new Error("Falha ao gerar a imagem base para o vídeo.");
-    }
-    const imageUrl = imageResult.images[0].url;
-    // Captura a semente usada na geração da imagem para retornar ao frontend
-    const newSeed = imageResult.seed;
-    console.log(`Imagem gerada com a semente: ${newSeed}`);
-
-    // --- ETAPA 2: Animar a imagem gerada ---
-    console.log("Animando a imagem gerada com wan-2.2...");
-    const videoResult = await fal.subscribe("fal-ai/wan-2.2", {
-      input: {
-        image_url: imageUrl,
-        motion_bucket_id: 127, // Controla a intensidade do movimento
-        cond_aug: 0.02,
-      },
-      logs: true,
-    });
+    
+    // Captura a semente usada na geração do vídeo para retornar ao frontend
+    const newSeed = videoResult.seed;
+    console.log(`Vídeo gerado com a semente: ${newSeed}`);
 
     if (videoResult?.video?.url) {
       // Retorna a URL do vídeo E a semente usada para o frontend
