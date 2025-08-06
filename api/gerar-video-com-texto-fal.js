@@ -43,10 +43,11 @@ async function handler(req, res) {
     }
 
     // --- ETAPA ÚNICA: Gerar vídeo diretamente do texto ---
-    console.log("Gerando vídeo diretamente do texto com wan/v2.2-5b/text-to-video...");
+    console.log("Gerando vídeo diretamente do texto com fal-ai/wan/v2.2-5b/text-to-video...");
     
     const videoInput = {
-        prompt: `${prompt}, cinematic, epic, book illustration, beautiful`, // Adiciona termos para melhorar a qualidade
+        prompt: `${prompt}, cinematic, beautiful, book illustration, hyperrealistic, 4k, detailed`, // Prompt ajustado para o modelo Wan 2.2 5B
+        aspect_ratio: "16:9"
     };
 
     // Adiciona a semente à requisição, se ela foi enviada pelo frontend
@@ -54,8 +55,8 @@ async function handler(req, res) {
         videoInput.seed = seed;
     }
 
-    // Chama o modelo de geração de vídeo diretamente
-    const videoResult = await fal.subscribe("wan/v2.2-5b/text-to-video", {
+    // CORREÇÃO: Chama a versão mais realista do Wan.
+    const videoResult = await fal.subscribe("fal-ai/wan/v2.2-5b/text-to-video", {
       input: videoInput,
       logs: true,
     });
