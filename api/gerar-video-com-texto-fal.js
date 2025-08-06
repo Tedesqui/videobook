@@ -17,7 +17,7 @@ const allowCors = fn => async (req, res) => {
 };
 
 /**
- * Handler principal da API que gera um vídeo com áudio em duas etapas.
+ * Handler principal da API que gera um vídeo com áudio em três etapas.
  */
 async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -42,38 +42,58 @@ async function handler(req, res) {
       return res.status(400).json({ error: 'Nenhum texto (prompt) fornecido.' });
     }
 
-    // --- ETAPA 1: Gerar vídeo silencioso a partir do texto ---
-    console.log("Etapa 1: Gerando vídeo silencioso com fal-ai/wan/v2.2-5b/text-to-video...");
+    // --- ETAPA 1: Gerar imagem a partir do texto ---
+    console.log("Etapa 1: Gerando imagem com fal-ai/flux-pro/v1.1-ultra...");
     
-    const videoInput = {
-        prompt: `${prompt}, cinematic, beautiful, book illustration, hyperrealistic, 4k, detailed`,
-        aspect_ratio: "16:9",
-        num_frames: 121, // Define a duração para 5 segundos (120 frames / 24 fps)
-        frames_per_second: 24,
-        resolution: "720p",        
-        negative_prompt: "distorted face, deformed hands, ugly, blurry, low quality, disfigured, deformed", // Evita distorções
-        num_inference_steps: 50 // Aumenta os passos para maior qualidade
+    const imageInput = {
+        prompt: `${prompt}, cinematic, beautiful, book illustration, hyperrealistic, 4k, detailed, best quality`,
+        negative_prompt: "distorted face, deformed hands, ugly, blurry, low quality, disfigured, deformed",
     };
 
     if (seed) {
-        videoInput.seed = seed;
+        imageInput.seed = seed;
     }
 
-    const silentVideoResult = await fal.subscribe("fal-ai/wan/v2.2-5b/text-to-video", {
-      input: videoInput,
+    // CORREÇÃO: Usando um modelo de imagem mais realista
+    const imageResult = await fal.subscribe("fal-ai/flux-pro/v1.1-ultra", {
+      input: imageInput,
       logs: true,
     });
     
-    const silentVideoUrl = silentVideoResult?.video?.url;
-    const newSeed = silentVideoResult.seed;
+    const imageUrl = imageResult?.images?.[0]?.url;
+    const newSeed = imageResult.seed;
 
-    if (!silentVideoUrl) {
-      throw new Error("Falha ao gerar o vídeo base (silencioso).");
+    if (!imageUrl) {
+      throw new Error("Falha ao gerar a imagem base.");
     }
-    console.log(`Vídeo silencioso gerado com a semente: ${newSeed}`);
+    console.log(`Imagem gerada com a semente: ${newSeed}`);
 
-    // --- ETAPA 2: Adicionar áudio ao vídeo gerado ---
-    console.log("Etapa 2: Adicionando áudio com fal-ai/mmaudio-v2...");
+    // --- ETAPA 2: Gerar vídeo a partir da imagem ---
+    console.log("Etapa 2: Gerando vídeo silencioso com fal-ai/wan/v2.2-a14b/image-to-video...");
+
+    const silentVideoResult = await fal.subscribe("fal-ai/wan/v2.2-a14b/image-to-video", {
+        input: {
+            image_url: imageUrl,
+            seed: newSeed, // Usa a mesma semente para consistência
+            num_frames: 121,
+            frames_per_second: 24,
+            resolution: "720p",
+            aspect_ratio: "16:9",
+            num_inference_steps: 50, // Mais passos para melhor qualidade
+            motion_bucket_id: 127,
+            cond_aug: 0.02,
+        },
+        logs: true,
+    });
+
+    const silentVideoUrl = silentVideoResult?.video?.url;
+    if (!silentVideoUrl) {
+        throw new Error("Falha ao gerar o vídeo base (silencioso).");
+    }
+    console.log("Vídeo silencioso gerado com sucesso.");
+
+    // --- ETAPA 3: Adicionar áudio ao vídeo gerado ---
+    console.log("Etapa 3: Adicionando áudio com fal-ai/mmaudio-v2...");
 
     const audioResult = await fal.subscribe("fal-ai/mmaudio-v2", {
         input: {
