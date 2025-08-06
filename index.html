@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<!-- A tag lang será definida dinamicamente pelo script -->
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>𝐕𝐈𝐃𝐄𝐎𝐁𝐎𝐎𝐊 - IA</title>
+    <style>
+        :root {
+            --fal-purple: #6E56CF;
+            --aws-orange: #FF9900;
+            --dark-bg: #111827;
+            --card-bg: #1F2937;
+            --text-color: #F9FAFB;
+            --border-radius: 12px;
+        }
+        body, html {
+            margin: 0; padding: 0; height: 100%; width: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--dark-bg); color: var(--text-color);
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: flex-start; /* Alinhado ao topo para scroll */
+            overflow-y: auto; padding-top: 20px;
+        }
+        .container {
+            width: 100%; max-width: 500px; padding: 20px;      
+            box-sizing: border-box; display: flex; flex-direction: column;
+            align-items: center; gap: 15px;
+        }
+        h2 {
+            text-align: center; margin-bottom: 10px;
+            font-size: 1.5em;
+        }
+        #camera-container {
+            width: 100%; background-color: var(--card-bg);            
+            border-radius: var(--border-radius); overflow: hidden;
+            position: relative; aspect-ratio: 4 / 5;
+            display: flex; align-items: center; justify-content: center;
+            border: 1px solid #374151;
+        }
+        #camera, #snapshot {
+            width: 100%; height: 100%; object-fit: cover;
+            position: absolute; top: 0; left: 0;
+        }
+        #snapshot { display: none; }
+        .controls {
+            display: flex; gap: 10px; width: 100%;
+        }
+        button {
+            flex-grow: 1; padding: 12px 8px;      
+            font-size: 14px; font-weight: bold; background-color: #374151;
+            color: white; border: 1px solid #4B5563; border-radius: var(--border-radius);
+            cursor: pointer; transition: background-color 0.3s, transform 0.1s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        #analyzeBtn { background-color: var(--aws-orange); }
+        #generateVideoBtn { background-color: var(--fal-purple); }
+        button:hover:not(:disabled) { filter: brightness(1.2); }
+        button:active:not(:disabled) { transform: scale(0.98); }
+        button:disabled { background-color: #4B5563; color: #9CA3AF; cursor: not-allowed; }
+        
+        #previewControls, #textConfirmationContainer { display: none; }
+        
+        #ocrResultText {
+            width: 100%;
+            height: 120px;
+            background-color: var(--card-bg);
+            border: 1px solid #4B5563;
+            color: var(--text-color);
+            border-radius: var(--border-radius);
+            padding: 10px;
+            font-size: 14px;
+            margin-top: 10px;
+            box-sizing: border-box;
+        }
+        .consistency-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            margin-top: 10px;
+            padding: 8px;
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            color: #D1D5DB;
+            font-size: 0.9em;
+            box-sizing: border-box;
+        }
+        #status {
+            text-align: center; min-height: 40px;
+            color: #D1D5DB; font-size: 1.1em;
+        }
+        #videoGerado { width: 100%; margin-top: 15px; }
+        #videoGerado video { width: 100%; border-radius: var(--border-radius); border: 1px solid #374151; }
+    </style>
+</head>
+<body>
+
+    <div class="container" style="transform: translateY(-65px);">
+        <h2 data-translate-key="title">𝐕𝐈𝐃𝐄𝐎𝐁𝐎𝐎𝐊 - IA</h2>
+
+        <div id="camera-container">
+            <video id="camera" autoplay playsinline muted></video>
+            <canvas id="snapshot"></canvas>
+        </div>
+
+        <div id="initialControls" class="controls">
+            <button id="zoomBtn" data-translate-key="zoomBtn">🔍 Zoom 1x</button>
+            <button id="takePhotoBtn" data-translate-key="takePhotoBtn">📷 Tirar Foto</button>
+        </div>
+
+        <div id="previewControls" class="controls">
+            <button id="retryBtn" data-translate-key="retryBtn">🔄 Tentar Novamente</button>
+            <button id="analyzeBtn" data-translate-key="analyzeBtn">📖 Ler Texto da Foto</button>
+        </div>
+        
+        <div id="textConfirmationContainer" class="w-full">
+            <textarea id="ocrResultText" data-translate-key="ocrPlaceholder" placeholder="Texto extraído aparecerá aqui..."></textarea>
+            <div class="controls" style="margin-top: 10px;">
+                   <button id="generateVideoBtn" data-translate-key="generateVideoBtn">🎬 Gerar Vídeo com Texto</button>
+            </div>
+        </div>
+        
+        <div class="consistency-control">
+            <input type="checkbox" id="consistencyCheck" class="w-4 h-4 accent-fal-purple">
+            <label for="consistencyCheck" data-translate-key="consistencyLabel">Manter consistência com vídeo anterior</label>
+        </div>
+        
+        <p id="status" data-translate-key="statusInitial">Aponte a câmera para uma página de livro.</p>
+        <div id="videoGerado"></div>
+        
+    </div>
+
+    <script>
+        // --- INÍCIO DA SEÇÃO DE TRADUÇÃO ---
+
+        const translations = {
+            'en': {
+                title: "VIDEOBOOK - AI",
+                zoomBtn: "🔍 Zoom 1x",
+                takePhotoBtn: "📷 Take Photo",
+                retryBtn: "🔄 Try Again",
+                analyzeBtn: "📖 Read Text from Photo",
+                ocrPlaceholder: "Extracted text will appear here...",
+                generateVideoBtn: "🎬 Generate Video with Text",
+                consistencyLabel: "Maintain consistency with previous video",
+                statusInitial: "Point the camera at a book page.",
+                statusCameraStart: "Starting camera...",
+                statusCameraError: "❌ Error starting camera: ",
+                statusCameraReady: "Camera ready. Point at the page.",
+                statusPhotoTaken: "Photo captured. Ready to read the text?",
+                statusReading: "🧠 Reading text...",
+                statusOcrError: "❌ OCR Error: ",
+                statusConfirmText: "Confirm or edit the text and generate the video.",
+                statusVideoGenerating: "🎨 Generating image and video... (This may take up to 2 minutes)",
+                statusVideoError: "❌ Error generating video: ",
+                statusVideoSuccess: "✅ Video generated successfully!",
+                statusShortTextError: "❌ Error: The text is too short to generate a video.",
+                statusNoVideoUrl: "Could not get the generated video URL.",
+                zoomNotAvailable: "Zoom N/A"
+            },
+            'pt': {
+                title: "𝐕𝐈𝐃𝐄𝐎𝐁𝐎𝐎𝐊 - IA",
+                zoomBtn: "🔍 Zoom 1x",
+                takePhotoBtn: "📷 Tirar Foto",
+                retryBtn: "🔄 Tentar Novamente",
+                analyzeBtn: "📖 Ler Texto da Foto",
+                ocrPlaceholder: "Texto extraído aparecerá aqui...",
+                generateVideoBtn: "🎬 Gerar Vídeo com Texto",
+                consistencyLabel: "Manter consistência com vídeo anterior",
+                statusInitial: "Aponte a câmera para uma página de livro.",
+                statusCameraStart: "Iniciando câmera...",
+                statusCameraError: "❌ Erro ao iniciar a câmera: ",
+                statusCameraReady: "Câmera pronta. Aponte para a página.",
+                statusPhotoTaken: "Foto capturada. Pronto para ler o texto?",
+                statusReading: "🧠 Lendo o texto...",
+                statusOcrError: "❌ Erro no OCR: ",
+                statusConfirmText: "Confirme ou edite o texto e gere o vídeo.",
+                statusVideoGenerating: "🎨 Gerando imagem e vídeo... (Isso pode demorar até 2 minutos)",
+                statusVideoError: "❌ Erro na geração do vídeo: ",
+                statusVideoSuccess: "✅ Vídeo gerado com sucesso!",
+                statusShortTextError: "❌ Erro: O texto é muito curto para gerar um vídeo.",
+                statusNoVideoUrl: "Não foi possível obter o URL do vídeo gerado.",
+                zoomNotAvailable: "Zoom N/D"
+            },
+            'es': {
+                title: "VIDEOBOOK - IA",
+                zoomBtn: "🔍 Zoom 1x",
+                takePhotoBtn: "📷 Tomar Foto",
+                retryBtn: "🔄 Intentar de Nuevo",
+                analyzeBtn: "📖 Leer Texto de la Foto",
+                ocrPlaceholder: "El texto extraído aparecerá aquí...",
+                generateVideoBtn: "🎬 Generar Video con Texto",
+                consistencyLabel: "Mantener consistencia con video anterior",
+                statusInitial: "Apunta la cámara a la página de un libro.",
+                statusCameraStart: "Iniciando cámara...",
+                statusCameraError: "❌ Error al iniciar la cámara: ",
+                statusCameraReady: "Cámara lista. Apunta a la página.",
+                statusPhotoTaken: "Foto capturada. ¿Listo para leer el texto?",
+                statusReading: "🧠 Leyendo texto...",
+                statusOcrError: "❌ Error de OCR: ",
+                statusConfirmText: "Confirma o edita el texto y genera el video.",
+                statusVideoGenerating: "🎨 Generando imagen y video... (Esto puede tardar hasta 2 minutos)",
+                statusVideoError: "❌ Error al generar el video: ",
+                statusVideoSuccess: "✅ ¡Video generado con éxito!",
+                statusShortTextError: "❌ Error: El texto es demasiado corto para generar un video.",
+                statusNoVideoUrl: "No se pudo obtener la URL del video generado.",
+                zoomNotAvailable: "Zoom N/D"
+            }
+        };
+
+        function getLangCode(lang) {
+            if (lang.startsWith('pt')) return 'pt';
+            if (lang.startsWith('es')) return 'es';
+            return 'en'; // Padrão para inglês
+        }
+
+        function setLanguage(lang) {
+            const langCode = getLangCode(lang);
+            document.documentElement.lang = langCode;
+            const strings = translations[langCode];
+
+            document.querySelectorAll('[data-translate-key]').forEach(el => {
+                const key = el.getAttribute('data-translate-key');
+                if (strings[key]) {
+                    if (el.placeholder !== undefined) {
+                        el.placeholder = strings[key];
+                    } else {
+                        el.innerHTML = strings[key];
+                    }
+                }
+            });
+        }
+
+        function getTranslatedString(key, lang = document.documentElement.lang) {
+            const langCode = getLangCode(lang);
+            return translations[langCode][key] || key;
+        }
+
+        function updateStatus(key, extraMessage = '') {
+            ui.status.textContent = getTranslatedString(key) + extraMessage;
+        }
+
+        // --- FIM DA SEÇÃO DE TRADUÇÃO ---
+
+
+        const ui = {
+            camera: document.getElementById('camera'),
+            snapshot: document.getElementById('snapshot'),
+            status: document.getElementById('status'),
+            videoGerado: document.getElementById('videoGerado'),
+            ocrResultText: document.getElementById('ocrResultText'),
+            consistencyCheck: document.getElementById('consistencyCheck'),
+            buttons: {
+                zoom: document.getElementById('zoomBtn'),
+                takePhoto: document.getElementById('takePhotoBtn'),
+                retry: document.getElementById('retryBtn'),
+                analyze: document.getElementById('analyzeBtn'),
+                generateVideo: document.getElementById('generateVideoBtn'),
+            },
+            containers: {
+                initialControls: document.getElementById('initialControls'),
+                previewControls: document.getElementById('previewControls'),
+                textConfirmation: document.getElementById('textConfirmationContainer'),
+            }
+        };
+
+        let mediaTrack = null;
+        let currentZoom = 1;
+        const zoomLevels = [1, 2, 3];
+        let zoomCapabilities = null;
+        let lastUsedSeed = null;
+
+        async function startCamera() {
+            updateStatus('statusCameraStart');
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment', width: { ideal: 1280 } } 
+                });
+                ui.camera.srcObject = stream;
+                mediaTrack = stream.getVideoTracks()[0];
+                zoomCapabilities = mediaTrack.getCapabilities().zoom;
+
+                if (!zoomCapabilities) {
+                    ui.buttons.zoom.disabled = true;
+                    ui.buttons.zoom.innerText = getTranslatedString('zoomNotAvailable');
+                }
+                updateStatus('statusCameraReady');
+            } catch (err) {
+                updateStatus('statusCameraError', err.message);
+            }
+        }
+
+        function toggleZoom() {
+            if (!zoomCapabilities) return;
+            const currentIndex = zoomLevels.indexOf(currentZoom);
+            currentZoom = zoomLevels[(currentIndex + 1) % zoomLevels.length];
+            if (currentZoom > zoomCapabilities.max) currentZoom = zoomLevels[0];
+            
+            mediaTrack.applyConstraints({ advanced: [{ zoom: currentZoom }] });
+            ui.buttons.zoom.innerText = `🔍 Zoom ${currentZoom}x`;
+        }
+
+        function takePhoto() {
+            const context = ui.snapshot.getContext('2d');
+            ui.snapshot.width = ui.camera.videoWidth;
+            ui.snapshot.height = ui.camera.videoHeight;
+            context.drawImage(ui.camera, 0, 0, ui.snapshot.width, ui.snapshot.height);
+            
+            ui.snapshot.style.display = 'block';
+            ui.camera.style.display = 'none';
+            ui.containers.initialControls.style.display = 'none';
+            ui.containers.previewControls.style.display = 'flex';
+            updateStatus('statusPhotoTaken');
+        }
+
+        function resetPhoto() {
+            ui.camera.style.display = 'block';
+            ui.snapshot.style.display = 'none';
+            ui.containers.previewControls.style.display = 'none';
+            ui.containers.initialControls.style.display = 'flex';
+            ui.containers.textConfirmation.style.display = 'none';
+            updateStatus('statusCameraReady');
+            ui.videoGerado.innerHTML = '';
+        }
+
+        async function analyzePhoto() {
+            ui.buttons.analyze.disabled = true;
+            ui.buttons.retry.disabled = true;
+            updateStatus('statusReading');
+            try {
+                const imageBase64 = ui.snapshot.toDataURL('image/png');
+                const response = await fetch('/api/ocr-aws', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ imageBase64 })
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || "Falha ao ler texto.");
+                
+                ui.ocrResultText.value = data.text;
+                ui.containers.previewControls.style.display = 'none';
+                ui.containers.textConfirmation.style.display = 'block';
+                updateStatus('statusConfirmText');
+
+            } catch (error) {
+                updateStatus('statusOcrError', error.message);
+            } finally {
+                ui.buttons.analyze.disabled = false;
+                ui.buttons.retry.disabled = false;
+            }
+        }
+        
+        async function generateVideo() {
+            ui.buttons.generateVideo.disabled = true;
+            ui.buttons.retry.disabled = true;
+            ui.videoGerado.innerHTML = '';
+            const prompt = ui.ocrResultText.value;
+
+            if (!prompt || prompt.length < 10) {
+                updateStatus('statusShortTextError');
+                ui.buttons.generateVideo.disabled = false;
+                ui.buttons.retry.disabled = false;
+                return;
+            }
+            
+            updateStatus('statusVideoGenerating');
+            try {
+                const payload = { prompt };
+                
+                if (ui.consistencyCheck.checked && lastUsedSeed !== null) {
+                    payload.seed = lastUsedSeed;
+                    console.log(`Enviando com a semente de consistência: ${lastUsedSeed}`);
+                }
+
+                const response = await fetch('/api/gerar-video-com-texto-fal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || "Falha na geração do vídeo.");
+                
+                if (data.videoUrl) {
+                    ui.videoGerado.innerHTML = `<video src="${data.videoUrl}" controls autoplay loop></video>`;
+                    updateStatus('statusVideoSuccess');
+                    lastUsedSeed = data.seed;
+                    console.log(`Nova semente recebida e salva: ${lastUsedSeed}`);
+                } else {
+                    throw new Error(getTranslatedString('statusNoVideoUrl'));
+                }
+            } catch (error) {
+                updateStatus('statusVideoError', error.message);
+            } finally {
+                ui.buttons.retry.disabled = false;
+                ui.buttons.generateVideo.disabled = false;
+            }
+        }
+
+        // --- INICIALIZAÇÃO ---
+        
+        // Adiciona os listeners aos botões
+        ui.buttons.zoom.addEventListener('click', toggleZoom);
+        ui.buttons.takePhoto.addEventListener('click', takePhoto);
+        ui.buttons.retry.addEventListener('click', resetPhoto);
+        ui.buttons.analyze.addEventListener('click', analyzePhoto);
+        ui.buttons.generateVideo.addEventListener('click', generateVideo);
+        
+        // Define o idioma e inicia a câmera quando o DOM estiver pronto
+        document.addEventListener('DOMContentLoaded', () => {
+            const userLang = navigator.language || navigator.userLanguage;
+            setLanguage(userLang);
+            startCamera();
+        });
+
+    </script>
+</body>
+</html>
