@@ -17,7 +17,7 @@ const allowCors = fn => async (req, res) => {
 };
 
 /**
- * Handler principal da API que recebe um texto e gera um vídeo diretamente.
+ * Handler principal da API que gera um vídeo com áudio em duas etapas.
  */
 async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -42,34 +42,49 @@ async function handler(req, res) {
       return res.status(400).json({ error: 'Nenhum texto (prompt) fornecido.' });
     }
 
-    // --- ETAPA ÚNICA: Gerar vídeo diretamente do texto ---
-    console.log("Gerando vídeo diretamente do texto com fal-ai/wan/v2.2-5b/text-to-video...");
+    // --- ETAPA 1: Gerar vídeo silencioso a partir do texto ---
+    console.log("Etapa 1: Gerando vídeo silencioso com fal-ai/wan/v2.2-5b/text-to-video...");
     
     const videoInput = {
-        prompt: `${prompt}, cinematic, beautiful, book illustration, hyperrealistic, 4k, detailed`, // Prompt ajustado para o modelo Wan 2.2 5B
+        prompt: `${prompt}, cinematic, beautiful, book illustration, hyperrealistic, 4k, detailed`,
         aspect_ratio: "16:9"
     };
 
-    // Adiciona a semente à requisição, se ela foi enviada pelo frontend
     if (seed) {
         videoInput.seed = seed;
     }
 
-    // CORREÇÃO: Chama a versão mais realista do Wan.
-    const videoResult = await fal.subscribe("fal-ai/wan/v2.2-5b/text-to-video", {
+    const silentVideoResult = await fal.subscribe("fal-ai/wan/v2.2-5b/text-to-video", {
       input: videoInput,
       logs: true,
     });
     
-    // Captura a semente usada na geração do vídeo para retornar ao frontend
-    const newSeed = videoResult.seed;
-    console.log(`Vídeo gerado com a semente: ${newSeed}`);
+    const silentVideoUrl = silentVideoResult?.video?.url;
+    const newSeed = silentVideoResult.seed;
 
-    if (videoResult?.video?.url) {
-      // Retorna a URL do vídeo E a semente usada para o frontend
-      res.status(200).json({ videoUrl: videoResult.video.url, seed: newSeed });
+    if (!silentVideoUrl) {
+      throw new Error("Falha ao gerar o vídeo base (silencioso).");
+    }
+    console.log(`Vídeo silencioso gerado com a semente: ${newSeed}`);
+
+    // --- ETAPA 2: Adicionar áudio ao vídeo gerado ---
+    console.log("Etapa 2: Adicionando áudio com fal-ai/mmaudio-v2...");
+
+    const audioResult = await fal.subscribe("fal-ai/mmaudio-v2", {
+        input: {
+            video_url: silentVideoUrl,
+            prompt: "gentle ambient music, cinematic score" // Descreve o tipo de áudio desejado
+        },
+        logs: true,
+    });
+
+    const finalVideoUrl = audioResult?.video?.url;
+
+    if (finalVideoUrl) {
+      // Retorna a URL do vídeo final (com áudio) E a semente original
+      res.status(200).json({ videoUrl: finalVideoUrl, seed: newSeed });
     } else {
-      throw new Error("A resposta da IA não continha uma URL de vídeo válida.");
+      throw new Error("A resposta da IA de áudio não continha uma URL de vídeo válida.");
     }
 
   } catch (error) {
