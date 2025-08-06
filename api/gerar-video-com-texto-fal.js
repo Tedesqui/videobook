@@ -1,4 +1,4 @@
-// Importa a biblioteca oficial da fal.ai para facilitar a comunicação
+/// Importa a biblioteca oficial da fal.ai para facilitar a comunicação
 import * as fal from '@fal-ai/serverless-client';
 
 /**
@@ -46,8 +46,8 @@ async function handler(req, res) {
     console.log("Etapa 1: Gerando imagem com fal-ai/wan/v2.2-a14b/text-to-image/lora...");
     
     const imageInput = {
-        prompt: `${prompt}, cinematic, beautiful, book illustration, hyperrealistic, 4k, detailed`,
-        negative_prompt: "distorted face, ugly, blurry, low quality, disfigured, deformed",
+        prompt: `${prompt}, cinematic, beautiful, book illustration, hyperrealistic, 4k, detailed, best quality`,
+        negative_prompt: "distorted face, deformed hands, ugly, blurry, low quality, disfigured, deformed",
     };
 
     if (seed) {
@@ -74,6 +74,11 @@ async function handler(req, res) {
         input: {
             image_url: imageUrl,
             seed: newSeed, // Usa a mesma semente para consistência
+            num_frames: 121,
+            frames_per_second: 24,
+            resolution: "720p",
+            aspect_ratio: "9:16",
+            num_inference_steps: 50, // Mais passos para melhor qualidade
             motion_bucket_id: 127,
             cond_aug: 0.02,
         },
