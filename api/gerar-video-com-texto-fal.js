@@ -49,7 +49,7 @@ async function handler(req, res) {
         prompt: `${prompt}, cinematic, beautiful, book illustration, hyperrealistic, 4k, detailed`,
         aspect_ratio: "16:9",
         num_frames: 120, // Define a duração para 5 segundos (120 frames / 24 fps)
-        negative_prompt: "distorted face, ugly, blurry, low quality, disfigured, deformed", // Evita distorções
+        negative_prompt: "distorted face, ugly, blurry, low quality, distorted hands, disfigured, deformed", // Evita distorções
         num_inference_steps: 50 // Aumenta os passos para maior qualidade
     };
 
