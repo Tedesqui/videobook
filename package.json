@@ -1,23 +1,16 @@
 {
-  "name": "videobook-backend",
+  "name": "videobook-ia",
   "version": "1.0.0",
-  "description": "Backend functions for the VIDEOBOOK project.",
-  "main": "index.js",
-  "type": "module",
+  "private": true,
+  "description": "Aplicação para gerar vídeos a partir de texto de livros usando IA.",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "vercel dev",
+    "start": "vercel dev"
   },
-  "keywords": [
-    "ai",
-    "fal.ai",
-    "aws",
-    "textract",
-    "video-generation"
-  ],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "@aws-sdk/client-textract": "^3.583.0",
-    "@fal-ai/serverless-client": "^0.8.2"
-  }
+    "@fal-ai/serverless-client": "^0.5.0"
+  },
+  "author": "Jean Tedesqui",
+  "license": "ISC"
 }
