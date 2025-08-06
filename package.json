@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-textract": "^3.583.0",
-    "@fal-ai/serverless-client": "^0.7.0"
+    "@fal-ai/serverless-client": "^0.8.0"
   },
   "author": "Jean Tedesqui",
   "license": "ISC"
