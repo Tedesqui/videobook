@@ -43,14 +43,14 @@ async function handler(req, res) {
     }
 
     // --- ETAPA 1: Gerar vídeo silencioso a partir do texto ---
-    console.log("Etapa 1: Gerando vídeo silencioso com fal-ai/wan/v2.2-5b/text-to-video...");
+    console.log("Etapa 1: Gerando vídeo silencioso com fal-ai/minimax/hailuo-02/pro/text-to-video...");
     
     const videoInput = {
         prompt: `${prompt}, cinematic, beautiful, book illustration, hyperrealistic, 4k, detailed`,
         aspect_ratio: "16:9",
         num_frames: 121, // Define a duração para 5 segundos (120 frames / 24 fps)
         frames_per_second: 24,
-        resolution: "720p",        
+        resolution: "1080p",        
         negative_prompt: "distorted face, deformed hands, ugly, blurry, low quality, disfigured, deformed", // Evita distorções
         num_inference_steps: 50 // Aumenta os passos para maior qualidade
     };
@@ -59,7 +59,7 @@ async function handler(req, res) {
         videoInput.seed = seed;
     }
 
-    const silentVideoResult = await fal.subscribe("fal-ai/wan/v2.2-5b/text-to-video", {
+    const silentVideoResult = await fal.subscribe("fal-ai/minimax/hailuo-02/pro/text-to-video", {
       input: videoInput,
       logs: true,
     });
