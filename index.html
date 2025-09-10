@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- A tag lang será definida dinamicamente pelo script -->
 <html>
 <head>
     <meta charset="UTF-8" />
@@ -97,7 +96,7 @@
 <body>
 
     <div class="container" style="transform: translateY(-65px);">
-        <h2 data-translate-key="title">𝐕𝐈𝐃𝐄𝐎𝐁𝐎𝐎𝐊 - IA</h2>
+        <h2 data-translate-key="title" style="position: relative; top: 5px;">𝐕𝐈𝐃𝐄𝐎𝐁𝐎𝐎𝐊 - IA</h2>
 
         <div id="camera-container">
             <video id="camera" autoplay playsinline muted></video>
@@ -117,7 +116,7 @@
         <div id="textConfirmationContainer" class="w-full">
             <textarea id="ocrResultText" data-translate-key="ocrPlaceholder" placeholder="Texto extraído aparecerá aqui..."></textarea>
             <div class="controls" style="margin-top: 10px;">
-                   <button id="generateVideoBtn" data-translate-key="generateVideoBtn">🎬 Gerar Vídeo com Texto</button>
+                     <button id="generateVideoBtn" data-translate-key="generateVideoBtn">🎬 Gerar Vídeo com Texto</button>
             </div>
         </div>
         
@@ -126,7 +125,7 @@
             <label for="consistencyCheck" data-translate-key="consistencyLabel">Manter consistência com vídeo anterior</label>
         </div>
         
-        <p id="status" data-translate-key="statusInitial">Aponte a câmera para uma página de livro.</p>
+        <p id="status" data-translate-key="statusInitial" style="position: relative; bottom: 5px;">Aponte a câmera para uma página de livro.</p>
         <div id="videoGerado"></div>
         
     </div>
