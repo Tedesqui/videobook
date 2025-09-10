@@ -151,7 +151,7 @@
                 statusReading: "🧠 Reading text...",
                 statusOcrError: "❌ OCR Error: ",
                 statusConfirmText: "Confirm or edit the text and generate the video.",
-                statusVideoGenerating: "🎨 Generating video... Just wait.",
+                statusVideoGenerating: "🎨 Generating video... (This will take less than 1 minute)",
                 statusVideoError: "❌ Error generating video: ",
                 statusVideoSuccess: "✅ Video generated successfully!",
                 statusShortTextError: "❌ Error: The text is too short to generate a video.",
@@ -175,7 +175,7 @@
                 statusReading: "🧠 Lendo o texto...",
                 statusOcrError: "❌ Erro no OCR: ",
                 statusConfirmText: "Confirme ou edite o texto e gere a imagem.",
-                statusVideoGenerating: "🎨 Gerando vídeo... (Isso levará menos de 1 minuto)",
+                statusVideoGenerating: "🎨 Gerando vídeo... Aguarde.",
                 statusVideoError: "❌ Erro na geração do vídeo: ",
                 statusVideoSuccess: "✅ Vídeo gerado com sucesso!",
                 statusShortTextError: "❌ Erro: O texto é muito curto para gerar um vídeo.",
@@ -407,9 +407,24 @@
         
         // Define o idioma e inicia a câmera quando o DOM estiver pronto
         document.addEventListener('DOMContentLoaded', () => {
-            const userLang = navigator.language || navigator.userLanguage;
-            setLanguage(userLang);
+            // Função encapsulada para verificar e definir o idioma
+            const checkAndSetLanguage = () => {
+                const userLang = navigator.language || navigator.userLanguage;
+                setLanguage(userLang);
+            };
+
+            // 1. Define o idioma no carregamento inicial da página
+            checkAndSetLanguage();
             startCamera();
+
+            // 2. Adiciona um listener para verificar o idioma novamente sempre que a página se tornar visível
+            document.addEventListener('visibilitychange', () => {
+                // A propriedade 'document.hidden' é 'false' quando a aba está ativa/visível
+                if (!document.hidden) {
+                    console.log("Aba tornou-se visível. Verificando o idioma novamente.");
+                    checkAndSetLanguage();
+                }
+            });
         });
 
     </script>
