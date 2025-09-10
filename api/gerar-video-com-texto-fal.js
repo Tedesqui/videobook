@@ -43,7 +43,7 @@ async function handler(req, res) {
     }
 
     // --- ETAPA 1: Gerar vídeo silencioso a partir do texto ---
-    console.log("Etapa 1: Gerando vídeo silencioso com fal-ai/minimax/hailuo-02/pro/text-to-video...");
+    console.log("Etapa 1: Gerando vídeo silencioso com fal-ai/wan/v2.2-5b/text-to-video...");
     
     const videoInput = {
         prompt: `${prompt}, cinematic, beautiful, book illustration, hyperrealistic, 4k, detailed`,
@@ -59,7 +59,7 @@ async function handler(req, res) {
         videoInput.seed = seed;
     }
 
-    const silentVideoResult = await fal.subscribe("fal-ai/minimax/hailuo-02/pro/text-to-video", {
+    const silentVideoResult = await fal.subscribe("fal-ai/wan/v2.2-5b/text-to-video", {
       input: videoInput,
       logs: true,
     });
