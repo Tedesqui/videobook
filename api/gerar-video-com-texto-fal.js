@@ -48,9 +48,9 @@ async function handler(req, res) {
     const videoInput = {
         prompt: `${prompt}, cinematic, beautiful, hyperrealistic, 4k, detailed`,
         aspect_ratio: "16:9",
-        num_frames: 97, // Define a duração para ~5 segundos
+        num_frames: 97, // Define a duração para ~4 segundos para evitar timeouts
         negative_prompt: "distorted face, deformed hands, ugly, blurry, low quality, disfigured, deformed", // Evita distorções
-        num_inference_steps: 40 // Aumenta os passos para maior qualidade
+        num_inference_steps: 40 // Reduz os passos para acelerar a geração
     };
 
     if (seed) {
@@ -76,7 +76,8 @@ async function handler(req, res) {
     const audioResult = await fal.subscribe("fal-ai/mmaudio-v2", {
         input: {
             video_url: silentVideoUrl,
-            prompt: "gentle ambient music, cinematic score" // Descreve o tipo de áudio desejado
+            prompt: "instrumental, gentle ambient music, cinematic score, background music, no vocals", // Prompt aprimorado
+            negative_prompt: "speech, talking, voice, narration, lyrics, singing, words" // Prompt negativo para excluir falas
         },
         logs: true,
     });
