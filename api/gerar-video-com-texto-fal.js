@@ -48,9 +48,7 @@ async function handler(req, res) {
     const videoInput = {
         prompt: `${prompt}, cinematic, beautiful, book illustration, hyperrealistic, 4k, detailed`,
         aspect_ratio: "16:9",
-        num_frames: 121, // Define a duração para 5 segundos (120 frames / 24 fps)
-        frames_per_second: 24,
-        resolution: "1080p",        
+        num_frames: 121, // Define a duração para ~5 segundos
         negative_prompt: "distorted face, deformed hands, ugly, blurry, low quality, disfigured, deformed", // Evita distorções
         num_inference_steps: 50 // Aumenta os passos para maior qualidade
     };
