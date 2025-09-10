@@ -46,7 +46,7 @@ async function handler(req, res) {
     console.log("Etapa 1: Gerando vídeo silencioso com fal-ai/minimax/hailuo-02/pro/text-to-video...");
     
     const videoInput = {
-        prompt: `${prompt}, cinematic, beautiful, book illustration, hyperrealistic, 4k, detailed`,
+        prompt: `${prompt}, cinematic, beautiful, hyperrealistic, 4k, detailed`,
         aspect_ratio: "16:9",
         num_frames: 97, // Define a duração para ~5 segundos
         negative_prompt: "distorted face, deformed hands, ugly, blurry, low quality, disfigured, deformed", // Evita distorções
