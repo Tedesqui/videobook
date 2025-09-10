@@ -175,7 +175,7 @@
                 statusReading: "🧠 Lendo o texto...",
                 statusOcrError: "❌ Erro no OCR: ",
                 statusConfirmText: "Confirme ou edite o texto e gere a imagem.",
-                statusVideoGenerating: "🎨 Gerando vídeo... Aguarde.",
+                statusVideoGenerating: "🎨 Gerando o vídeo... Aguarde.",
                 statusVideoError: "❌ Erro na geração do vídeo: ",
                 statusVideoSuccess: "✅ Vídeo gerado com sucesso!",
                 statusShortTextError: "❌ Erro: O texto é muito curto para gerar um vídeo.",
@@ -209,6 +209,7 @@
         };
 
         function getLangCode(lang) {
+            // Removendo o alert de depuração da versão final
             if (lang.startsWith('pt')) return 'pt';
             if (lang.startsWith('es')) return 'es';
             return 'en'; // Padrão para inglês
@@ -377,8 +378,13 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
+                
                 const data = await response.json();
-                if (!response.ok) throw new Error(data.error || "Falha na geração do vídeo.");
+                
+                if (!response.ok) {
+                    // Se a resposta não for OK, lança o objeto de dados inteiro como erro
+                    throw data; 
+                }
                 
                 if (data.videoUrl) {
                     ui.videoGerado.innerHTML = `<video src="${data.videoUrl}" controls autoplay loop></video>`;
@@ -389,7 +395,25 @@
                     throw new Error(getTranslatedString('statusNoVideoUrl'));
                 }
             } catch (error) {
-                updateStatus('statusVideoError', error.message);
+                console.error("Erro completo recebido:", error); // Adiciona um log para depuração
+                let errorMessage = 'Ocorreu um erro inesperado.';
+
+                // Tenta extrair a mensagem de diferentes formatos de erro
+                if (error && typeof error.message === 'string') {
+                    errorMessage = error.message;
+                } else if (error && typeof error.error === 'string') {
+                    // Para casos onde o objeto de erro é { error: "mensagem" }
+                    errorMessage = error.error;
+                } else {
+                    // Se não encontrar uma mensagem, mostra o objeto como texto
+                    try {
+                        errorMessage = JSON.stringify(error);
+                    } catch {
+                        // Se falhar, usa a mensagem padrão
+                    }
+                }
+                
+                updateStatus('statusVideoError', errorMessage);
             } finally {
                 ui.buttons.retry.disabled = false;
                 ui.buttons.generateVideo.disabled = false;
@@ -410,10 +434,6 @@
             // Função encapsulada para verificar e definir o idioma
             const checkAndSetLanguage = () => {
                 const userLang = navigator.language || navigator.userLanguage;
-                
-                // A linha abaixo irá mostrar um alerta na tela com o idioma detectado
-                alert('Idioma detectado pelo navegador: ' + userLang);
-                
                 setLanguage(userLang);
             };
 
